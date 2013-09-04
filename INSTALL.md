@@ -28,7 +28,7 @@ Below are the steps I used for compiling the plugin using Visual Studio Express 
     1. python_plugin.c
     2. stplugin.h
     3. stplugin.c
-    4. python33.lib$ (for me this resides in C:/Python33/libs)
+    4. python33.lib (for me this resides in C:/Python33/libs)
 		
 5. Under **Resource Files**, click on python_plugin.c so that it's highlighted. In the main menu bar (at the top of the Visual Studio) select **VIEW > Property Pages**.
 		
@@ -47,16 +47,15 @@ Below are the steps I used for compiling the plugin using Visual Studio Express 
 		
     Using the default settings, for me the compiled dll is found in
 		
-    C:/Users/<my username>/My Documents/Visual Studio 2012/
-        Projects/<project name>/x64/Release
+    C:/Users/\[username\]/My Documents/Visual Studio 2012/Projects/\[project name\]/x64/Release
 		
-    (with <my username> and <project name> replaced).
+    (with \[username\] and \[project name\] replaced).
 		
-    Put python_plugin.plugin and python.ado in Stata's ado path (in Stata use command ``adopath`` to see the ado path), and put stata.py and stata_missing.py in Python's path (in Python use ``import sys`` then ``sys.path`` to see directories in the path). 
+    Put python\_plugin.plugin and python.ado in Stata's ado path (in Stata use command ``adopath`` to see the ado path), and put stata.py and stata_missing.py in Python's path (in Python use ``import sys`` then ``sys.path`` to see directories in the path). 
 		
     As an alternative to putting files in the ado path and/or the Python path, you can put some or all of these files into a common directory and ``cd`` to that directory in Stata before first calling the plugin. This works because the current working directory is always in the ado path, and the directory in which the Python plugin was first called will be in the Python path.
 	
-10. Open Stata and type python. If everything has worked, this should start an interactive session of Python within Stata. A horizontal line should appear, with text to indicate a Python interactive session has started, similar to when starting an interactive session of Mata. If error messages and results are not printed to the screen, check to make sure stata.py is somewhere that Python can find it.
+10. Open Stata and type ``python``. If everything has worked, this should start an interactive session of Python within Stata. A horizontal line should appear, with text to indicate a Python interactive session has started, similar to when starting an interactive session of Mata. If error messages and results are not printed to the screen, check to make sure stata.py is somewhere that Python can find it.
 	
 	
 Mac OS X
@@ -64,17 +63,14 @@ Mac OS X
 
 (thanks to Kit Baum for working on this)
 
-The plugin was successfully installed on Mac OS X with the following steps. First, make sure that Python3.3 is installed. An OS X installer can be found at http://www.python.org/getit/. After installing Python3.3, you might need change the definition of ``python`` to point to the python3.3 executable. You can do this by renaming the /usr/local/python to /usr/local/python2.7 (assuming Python2.7 is the default version) and then adding a symlink from /usr/local/python to /usr/local/bin/python3.3.
+The plugin was successfully installed on Mac OS X with the following steps. First, make sure that Python3.3 is installed. An OS X installer can be found at http://www.python.org/getit/. After installing Python3.3, you might need change the definition of ``python`` to point to the python3.3 executable. You can do this by renaming /usr/local/python to /usr/local/python2.7 (assuming Python2.7 is the default version) and then adding a symlink from /usr/local/python to /usr/local/bin/python3.3.
 
-You will also need gcc. You can get gcc with Xcode (https://developer.} \lstinline{apple.com/xcode/), or the Command Line Tools for Xcode (see, for example, http://www.mkyong.com/mac/how-to-install-gcc-compiler-on-mac-os-x/).
+You will also need gcc. You can get gcc with Xcode (https://developer.apple.com/xcode/), or the Command Line Tools for Xcode (see, for example, http://www.mkyong.com/mac/how-to-install-gcc-compiler-on-mac-os-x/).
 
 Next, make sure python_plugin.c, stplugin.c, and stplugin.h reside in the same directory. To compile the plugin, start with the compiler command from http://www.stata.com/plugins/, modified for this plugin:
 
-...
-gcc -bundle -DSYSTEM=APPLEMAC stplugin.c 
-  python_plugin.c -o python_plugin.plugin
-...
+    gcc -bundle -DSYSTEM=APPLEMAC stplugin.c python_plugin.c -o python_plugin.plugin
 	
 Add to that compiler and linker flags for Python, which can be obtained as in http://docs.python.org/3.3/extending/embedding.html#compiling-and-linking-under-unix-like-systems.
 
-After compiling, python_plugin.plugin and python.ado need to be put in Stata's ado path and stata.py and stata_missing.py need to be put in the Python path. Alternately, any or all of these files can be in the directory from which the ``python`` command is first invoked, because that directory should be in both the ado path and Python path.
+After compiling, python\_plugin.plugin and python.ado need to be put in Stata's ado path and stata.py and stata_missing.py need to be put in the Python path. Alternately, any or all of these files can be in the directory from which the ``python`` command is first invoked, because that directory should be in both the ado path and Python path.
