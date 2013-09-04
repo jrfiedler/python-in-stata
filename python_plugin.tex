@@ -1,0 +1,2202 @@
+\documentclass{article}
+\usepackage{listings}
+\usepackage{stata}
+\usepackage{color}
+\usepackage{textcomp}
+\usepackage{amsmath}
+\usepackage{multicol}
+\usepackage{titling}
+
+\setlength{\droptitle}{-3em} 
+
+\lstset{basicstyle=\ttfamily}
+\lstset{upquote=true}
+
+\title{The Python plugin for Stata, version 0.1.0}
+\author{James Fiedler}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+	\section{Introduction}
+		
+		This document describes a Stata plugin for embedding the Python programming language within Stata. In short, the plugin gives the user the ability to use Python to interact with Stata data values, matrices, macros, and numeric scalars. The plugin can be used interactively inside the Stata GUI, or can be used to execute Python files. Python files can be used separately or in combination with \lstinline{.ado} or \lstinline{.do} files.
+		
+		This code has been tested only on Windows 7, 64-bit computers, in Stata versions 12.1 and 13.0, with Python 3.3. Python 3.2 and 3.1 can probably be used instead of Python 3.3, but that has not been tested. The plugin will not work with Python 2. The code was developed for Stata 12.1 but works in Stata 13.0, except that string values must be \textsc{ASCII} and be no more than 244 characters long. In other words, the code works in Stata 13.0 when used with string values allowed in Stata 12.1.
+		
+		Users will need to compile the plugin themselves. Instructions for compiling on Windows are given in \S\ref{installing}. Users will need Stata, Python (specifically, CPython, the most common version), and a C compiler. Users will also need access to the file \lstinline{Python.h}, which is included in many distributions of Python. The Windows installer at \lstinline{http://www.python.org/getit/} will install all of the Python files you need. 
+		
+		This document assumes the reader has some experience with Python, but extensive experience is not required.
+				
+
+	\section{Use with caution}
+	
+	The plugin and helper files described here are experimental. Save your data before using the plugin. There is currently one known limitation/bug which can crash Stata. There may be other, unknown bugs that can crash Stata, too.
+	
+	\subsection{Limitations} \label{limitations}
+	
+		\begin{enumerate}
+			\item[1.] Dropping a Stata program that uses the Python plugin and then re-running it can crash Stata, depending on what Python modules are used in the program, and whether it's the only Stata program that uses the plugin. For many Python modules this is not a problem. Nor does it seem to be a problem to drop and re-run \lstinline{python.ado}, even if it's the only program using the plugin.
+			
+			\textbf{Remedy:} It's not clear what is causing this problem, but there seems to be a simple solution. If wanting to drop a program that uses the plugin, make sure that another program also uses it---for example, use \lstinline{python.ado} at least once---or declare the plugin in Stata directly, with \lstinline{program python_plugin, plugin}.
+			
+			\item[2.] The interactive Python interpreter within Stata is limited to single-line inputs. Unfortunately there is no remedy for this at the moment. With some creativity, though, quite a bit of Python code can be packed into a single line, or combinations of single-line inputs. If more than one line of input is needed in a single statement, you can write the code in a Python \lstinline{.py} file, and run the file using the \lstinline{file} option of \lstinline{python.ado} or \lstinline{import} it in an interactive session.
+			
+			\item[3.] The Stata \textsc{GUI}'s Break button does not interrupt the plugin. There is not recourse for infinite loops in the plugin besides closing Stata.
+			
+			\item[4.] The plugin does not have continuous access to user input. Python code requiring continuous control over \lstinline{stdin}, such as the \lstinline{input()} function, will not work.
+			
+			\item[5.] Calling \lstinline{sys.exit()} in a Python file will close Stata. In the interactive interpreter, \lstinline{sys.exit()} may be safely used to exit the plugin only.
+		\end{enumerate}
+
+
+\section{Installing} \label{installing}
+				
+		The necessary files for this project, besides those that come with your Python installation, are
+		\begin{itemize}
+			\item \lstinline$stplugin.h$ (from \verb|http://www.stata.com/plugins/|)
+			\item \lstinline$stplugin.c$ (from \verb|http://www.stata.com/plugins/|)
+			\item \lstinline$python_plugin.c$
+			\item \lstinline$python.ado$
+			\item \lstinline$stata.py$
+			\item \lstinline$stata_missing.py$
+		\end{itemize}
+		
+	\subsection{Windows, using Visual Studio Express}
+	
+	Below are the steps I used for compiling the plugin using Visual Studio Express 2012 and Python version 3.3 on Windows 7. StataCorp has notes for compiling plugins for other versions of Visual Studio at \verb|http://www.stata.com/plugins/|
+	
+	\begin{enumerate}
+		\setcounter{enumi}{-1}
+		\item You will need Stata, Python, and Visual Studio Express 2012 installed. You will also need the Stata plugin header file \lstinline$stplugin.h$ and C file \lstinline$stplugin.c$ from section 2 of \verb|http://www.stata.com/plugins/|.
+		\item Open Visual Studio. From the main menu at the top, select \textbf{File $>$ New Project}.
+		
+		\item A window pops up. Under the menu on the left, expand the \textbf{Visual C++} item, then select \textbf{Win32}. In the center pane of the window choose \textbf{Win32 Project}. On the bottom, change the name and solution name, if desired, then click \textbf{OK}.
+		
+		\item Another window pops up. Click on \textbf{Next}. On the next screen, under \textbf{Application type}, choose \textbf{DLL}. Below that, check the box for \textbf{empty project}. Click on \textbf{Finish}.
+		
+		\item In the main application window, on the right hand side, find \textbf{Resource Files}. Right click, select \textbf{Add $>$ Existing Item}. Add each of these (you might have to right click and choose \textbf{Add $>$ Existing Item} multiple times):
+			\begin{enumerate}
+				\item \lstinline$python_plugin.c$
+				\item \lstinline$stplugin.h$
+				\item \lstinline$stplugin.c$
+				\item \lstinline$python33.lib$ (for me this resides in \verb|C:/Python33/libs|)
+			\end{enumerate}
+		
+		\item Under \textbf{Resource Files}, click on \lstinline$python_plugin.c$ so that it's highlighted. In the main menu bar (at the top of the Visual Studio) select \textbf{VIEW $>$ Property Pages}.
+		
+		A new window pops up. On the left, select \textbf{C/C++ $>$ General}. On the right, click in the field next to \textbf{Additional Include Directories}, and type in the directory for Python.h (for me it is \verb|C:/Python33/include|). Press enter or click on \textbf{OK}.
+		
+		\item At the top, find \textbf{Debug} \emph{below} the main menu bar (not the \textbf{DEBUG} \emph{in} the main menu bar), and change this to \textbf{Release}. (Alternately, you could rename the Python file \lstinline$python33.lib$ to \lstinline$python33_d.lib$.) 
+		
+	You might have to repeat this and the previous step if you make other changes to settings or do these steps out of order.
+		
+		\item If you have an x64 machine, change the field next to \textbf{Debug} from \textbf{Win32} to \textbf{x64}. This will require several steps. First, click on the field to open the menu, and choose \textbf{Configuration Manager...}. A new window pops up. Under platform, select \textbf{New...}, then select x64. Click on \textbf{OK}, then \textbf{Close}.
+	
+		\item In the main menu bar select \textbf{BUILD $>$ Build Solution} or use the shortcut, F7. You should get a message in the Output window, below the main window, that says the project was successfully compiled.
+	
+		
+		\item Rename the compiled dll (if necessary) to \lstinline$python_plugin.plugin$.
+		
+		Using the default settings, for me the compiled dll is found in
+		
+		\verb|C:/Users/<my username>/My Documents/Visual Studio 2012/|\newline
+		\verb|    Projects/<project name>/x64/Release|
+		
+		(with \verb|<my username>| and \verb|<project name>| replaced).
+		
+		Put \lstinline$python_plugin.plugin$ and \lstinline$python.ado$ in Stata's ado path (in Stata use command \lstinline{adopath} to see the ado path), and put \lstinline$stata.py$ and \lstinline$stata_missing.py$ in Python's path (in Python use \lstinline{import sys} then \lstinline{sys.path} to see directories in the path). 
+		
+		As an alternative to putting files in the ado path and/or the Python path, you can put some or all of these files into a common directory and \lstinline{cd} to that directory in Stata before first calling the plugin. This works because the current working directory is always in the ado path, and the directory in which the Python plugin was first called will be in the Python path.
+	
+		\item Open Stata and type \lstinline$python$. If everything has worked, this should start an interactive session of Python within Stata. A horizontal line should appear, with text to indicate a Python interactive session has started, similar to when starting an interactive session of Mata. Try some of the examples from \S\ref{examples}. If error messages and results are not printed to the screen, check to make sure \lstinline$stata.py$ is somewhere that Python can find it.
+	\end{enumerate}
+	
+	
+\subsection{Mac OS X}
+
+{\small (thanks to Kit Baum for working on this)}\newline
+
+The plugin was successfully installed on Mac OS X with the following steps. First, make sure that Python3.3 is installed. An OS X installer can be found at \lstinline{http://www.python.org/getit/}. After installing Python3.3, you might need change the definition of \lstinline{python} to point to the \lstinline{python3.3} executable. You can do this by renaming \lstinline{/usr/local/python} to \lstinline{/usr/local/python2.7} (assuming Python2.7 is the default version) and then adding a symlink from \lstinline{/usr/local/python} to \lstinline{/usr/local/bin/python3.3}.
+
+You will also need \lstinline{gcc}. You can get \lstinline{gcc} with Xcode (\lstinline{https://developer.} \lstinline{apple.com/xcode/}), or ``Command Line Tools for Xcode'' (see, for example, \lstinline{http://www.mkyong.com/mac/how-to-install-gcc-compiler-on-mac-os-x/}).
+
+Next, make sure \lstinline{python_plugin.c}, \lstinline{stplugin.c}, and \lstinline{stplugin.h} reside in the same directory. To compile the plugin, start with the compiler command from \lstinline{http://www.stata.com/plugins/}, modified for this plugin:
+\begin{lstlisting}
+  gcc -bundle -DSYSTEM=APPLEMAC stplugin.c 
+    python_plugin.c -o python_plugin.plugin
+\end{lstlisting}
+Add to that compiler and linker flags for Python, which can be obtained as in \newline
+\lstinline{http://docs.python.org/3.3/extending/embedding.html#compiling-and-} \newline \lstinline{linking-under-unix-like-systems}.
+
+After compiling, \lstinline{python_plugin.plugin} and \lstinline{python.ado} need to be put in Stata's ado path and \lstinline{stata.py} and \lstinline{stata_missing.py} need to be put in the Python path. Alternately, any or all of these files can be in the directory from which the \lstinline{python} command is first invoked, because that directory should be in both the ado path and Python path.
+
+
+\section{Syntax of \lstinline$python.ado$} \label{syntax}
+
+	The syntax for \lstinline$python.ado$ is
+	\begin{lstlisting}
+   python [varlist] [if] [in] [, file(some_file.py) 
+                                 args(some_args) ]
+  \end{lstlisting}
+  
+  If no file is specified, an interactive session is begun. The number of arguments in the \lstinline{args} option is stored in Stata local \lstinline$_pynargs$, and the arguments are stored in \lstinline$_pyarg0$, \lstinline$_pyarg1$, etc. The number of variables in the varlist and their names are stored in Stata locals \lstinline$_pynvars$, and \lstinline$_pyvar0$, \lstinline$_pyvar1$, etc. (see example in \S\ref{fileexample}).
+		
+		There is one drawback to using \lstinline$python.ado$ rather than using the plugin directly. With  \lstinline$python.ado$ the user will have access only to those locals defined within \lstinline$python.ado$ or within the Python session or script. Any locals defined interactively before starting an interactive session will be invisible if using \lstinline$python.ado$ to invoke the interactive session. See example in \S\ref{local_example}.
+		
+
+\section{The \lstinline$stata_missing$ module} \label{stata_missing}
+
+	The purpose of the \lstinline$stata_missing$ module is to implement an analog of Stata's missing values. This is accomplished with the class \lstinline$MissingValue$. The module contains analogs of the 27 usual missing values, \lstinline$.$, \lstinline$.a$, \lstinline$.b$, etc., in a tuple called \lstinline$MISSING_VALS$. Stata supports missing values other than these, but the \lstinline$stata_missing$ module does not. The analog of Stata's \lstinline$.$ missing value, \lstinline$MISSING_VALS[0]$, is also given the name \lstinline$MISSING$ within the \lstinline$stata_missing$ module.
+		
+	Users wanting direct access to analogs of Stata's missing values should use the existing instances of \lstinline$MissingValue$ rather than construct new instances. Users wanting to determine which instance of \lstinline$MissingValue$ corresponds to a large floating point number should use the function \lstinline$getMissing$, which takes a single \lstinline{float} or \lstinline{int} argument and returns an instance of \lstinline{MissingValue}. 
+	
+	Any plugin function that sets Stata numeric values can accept a \lstinline{float}, \lstinline{int}, \lstinline$None$, or an instance of \lstinline{MissingValue}. In such cases, \lstinline$None$ will translated into Stata's \lstinline$.$ missing value.
+	
+	Example usage of the \lstinline{stata_missing} module is given in \S\ref{missing_value_example}, \S\ref{st_View_example}, and \S\ref{st_Matrix_example}.
+  
+	
+\section{The \lstinline$stata$ module} \label{stata_module}
+	
+			The \lstinline$stata$ module provides functions for interacting with Stata variables, matrices, macros, and numeric scalars. The module is automatically imported with the first use of the plugin, just as if the user had typed \lstinline$from stata import *$. The module is imported whether the plugin was invoked directly (``\lstinline$plugin call$ ...'') or through \lstinline$python.ado$, and for both the interactive interpreter and running files. 
+			
+			Almost all of the functionality provided by the \lstinline$stata$ module is mirrored by functionality in Mata (but not vice versa). In an effort to be easier to use, the functions in the \lstinline$stata$ module were made to mimic functions in Mata. For example, in Mata the function \lstinline$st_local$ retrieves the value of a local macro if given one argument (its name) or sets the value of the macro if given two arguments (name and value). In the \lstinline$stata$ module there is a function \lstinline$st_local$ with the same behavior. Of course, some changes had to be made between Mata and Python versions of functions. In Mata, when the user tries to access a non-existent numerical scalar, an empty matrix \lstinline$J(0,0)$ is returned. Python has no inherent notion of a matrix, so instead the Python function raises a \lstinline{ValueError}. For the same reason Mata's \lstinline$st_matrix$ becomes a class \lstinline$st_Matrix$ (notice the capital ``M'').
+			
+			Many of the functions in the \lstinline$stata$ module have indexing arguments. Keep in mind that while Stata uses 1-based indexing (i.e., the first meaningful index is 1 for data variables, observations, and matrix elements), the Python convention is to begin indexing at 0. Thus, if the first variable in a dataset is numeric, its first observation can be obtained via either 
+			\begin{quote}
+				\lstinline$_st_data(0, 0)$
+			\end{quote}
+			or
+			\begin{quote}
+				\lstinline$st_data(0, 0)$,
+			\end{quote}
+			and its value can be changed via
+			\begin{quote}
+				\lstinline$_st_store(0, 0, some_val)$
+			\end{quote}
+			or
+			\begin{quote}
+				\lstinline$st_store(0, 0, some_val)$.
+			\end{quote}
+
+\subsection{List of functions} \label{func_list}
+
+\begin{multicols}{3}
+\setcounter{finalcolumnbadness}{0}
+
+\lstinline$st_cols$ 
+
+\lstinline$_st_data$ 
+
+\lstinline$st_data$ 
+
+{\color{gray}\lstinline$_st_display$}
+
+{\color{gray}\lstinline$_st_error$}
+
+\lstinline$st_format$ 
+
+\lstinline$st_global$ 
+
+\lstinline$st_ifobs$ 
+
+\lstinline$st_in1$ 
+
+\lstinline$st_in2$ 
+
+\lstinline$st_isfmt$ 
+
+\lstinline$st_islmname$ 
+
+\lstinline$st_ismissing$ 
+
+\lstinline$st_isname$ 
+
+\lstinline$st_isnumfmt$ 
+
+\lstinline$st_isnumvar$ 
+
+\lstinline$st_isstrfmt$ 
+
+\lstinline$st_isstrvar$ 
+
+\lstinline$st_isvarname$ 
+
+\lstinline$st_local$ 
+
+\lstinline$st_Matrix$ 
+
+\lstinline$st_matrix_el$ 
+
+\lstinline$st_nobs$ 
+
+\lstinline$st_numscalar$ 
+
+\lstinline$st_nvar$
+
+\lstinline$st_rows$
+
+\lstinline$_st_sdata$ 
+
+\lstinline$st_sdata$
+
+\lstinline$_st_sstore$
+
+\lstinline$st_sstore$ 
+
+\lstinline$_st_store$ 
+
+\lstinline$st_store$ 
+
+\lstinline$st_varindex$ 
+
+\lstinline$st_varname$ 
+
+\lstinline$st_View$ 
+
+\lstinline$st_viewobs$ 
+
+\lstinline$st_viewvars$
+\end{multicols}
+
+\subsection{Function descriptions} \label{func_descript}
+			
+			
+			\ \newline
+			\noindent \lstinline$st_cols(matname)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{matname} & str \\
+					returns: & \multicolumn{2}{l}{int}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Get number of columns in given matrix. Returns 0 if there is no Stata matrix with name \lstinline$matname$. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$_st_data(obsnum, varnum)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{obsnum} & int \\
+						& \texttt{varnum} & int \\
+					returns: & \multicolumn{2}{l}{float or MissingValue}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Get value from given numerical variable in given observation. The allowed argument values are 
+			\[
+				-\texttt{st\_nobs()} \leq \texttt{obsnum} < \texttt{st\_nobs()}
+			\]
+			and
+			\[
+				-\texttt{st\_nvar()} \leq \texttt{varnum} < \texttt{st\_nvar()}
+			\]
+			(assuming plugin is called through \lstinline$python.ado$ or used in accordance with recommendations made in \S\ref{using_plugin}). Negative values are interpreted in the usual way for Python indexes. Values outside of these ranges will cause an \lstinline$IndexError$. Note this last detail is unlike in Mata, where \lstinline{_st_data()} does not abort with error for invalid indices, but instead returns a \lstinline{.} missing value.
+			\newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_data(obsnums, varIDs)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{obsnums} & single int or iterable of int \\
+					  & \texttt{varIDs} & single int, single str, or iterable of int or str \\
+					returns: & \multicolumn{2}{l}{list of lists of float or MissingValue}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Get values in given observations and given nuemric Stata variables. The function returns a list of lists, with one sub-list for each observation. See \S\ref{data_and_store_example} for example usage and return values. 
+			
+			This function uses \lstinline{_st_data()}, so \lstinline{obsnums} and \lstinline{varID} (if integer) can be negative and if out of range will raise an \lstinline{IndexError}. If strings are used in \lstinline{varIDs}, a \lstinline{ValueError} will be raised for ambiguous or incorrect abbreviations. \newline
+		
+		
+			\ \newline
+			\noindent \lstinline$_st_display(text)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{text} & str \\
+					returns: & \multicolumn{2}{l}{\texttt{None}}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Print text in Stata's results window, with included \textsc{SMCL} tags interpreted. The usual \texttt{print} function is routed through \lstinline$_st_display$, so there's usually no need to call \lstinline$_st_display$ directly.  Unlike most other functions listed here, this function is not autmatically imported into the main namespace. To use it, first import it with \lstinline{from stata import _st_display}. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$_st_error(text)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\vspace{-1mm}
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{text} & str \\
+					returns: & \multicolumn{2}{l}{\texttt{None}}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Print text as error. There's usually no need to call this function directly. Python errors are automatically routed through \lstinline{_st_error}, and if wanting to display a message as an error, the user can simply use \lstinline$print("{err}<message>")$. Like \lstinline{_st_display}, this function is not automatically imported into the main namespace. To use it, first import it with \lstinline{from stata import _st_error}. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_format(text, value)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{text} & str \\
+					 & \texttt{value} & int, float, MissingValue, or \lstinline$None$ \\
+					returns: & \multicolumn{2}{l}{bool}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Return string representation of \lstinline{value} according to Stata format given in \lstinline{text}. The first argument should be a valid Stata format, but the function will return a meaningful string regardless. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_global(macroname)$ \\
+			\noindent \lstinline$st_global(macroname, value)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent with 1 argument:
+			
+			\indent \qquad \begin{tabular}{rrl}
+					arguments: & \texttt{macroname} & str \\
+					returns: & \multicolumn{2}{l}{str}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent
+			\indent with 2 arguments:
+			
+			\indent \qquad \begin{tabular}{rrl}
+					arguments: & \texttt{macroname} & str \\
+					  & \texttt{value} & str \\
+					returns: & \multicolumn{2}{l}{None}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Get value from given global macro if using 1-argument version, or set the value of the global macro if using the 2-argument version. In the 1-argument version, if the global macro does not exist the return value will be the empty string. In either version, if the global macro name is malformed a \lstinline{ValueError} will be raised. 
+			
+			Unlike Mata's \lstinline{st_global}, the \lstinline{st_global} here cannot access characteristics and cannot access \lstinline{r()}, \lstinline{e()}, \lstinline{s()}, and \lstinline{c()} macros. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_ifobs(obsnum)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{obsnum} & int \\
+					returns: & \multicolumn{2}{l}{bool}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Determine if the given observation number is within the \texttt{if} condition given when invoking \lstinline{python.ado} or the plugin. When no \texttt{if} condition is given, this will evaluate to \texttt{True} for all observations. The allowed values for \lstinline{obsnum} are 
+			\[
+				-\texttt{st\_nobs()} \leq \texttt{obsnum} < \texttt{st\_nobs()}
+			\]
+			with negative values interpreted in the usual way. Values outside this range will cause an \lstinline{IndexError}.\newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_in1()$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rl}
+					returns: & int
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Get first index within the \texttt{in} condition given when invoking \lstinline{python.ado} or the plugin. When no \texttt{in} condition is given, this will evaluate to \texttt{0}. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_in2()$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rl}
+					returns: & int
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Get first index beyond (greater than) the \texttt{in} condition given when invoking \lstinline{python.ado} or the plugin. When no \texttt{in} condition is given, this will return the same value as \lstinline$st_nobs()$. The reason for returning the first index {\em beyond} the \texttt{in} condition, rather that {\em last index within}, is to facilitate the common Python syntax of index slicing. For example, if Python variable \texttt{v} is an instance of \lstinline{st_View} (see below), then \lstinline$v[st_in1():st_in2(), ]$ would be a reference to the observations within the \texttt{in} condition. (See \S\ref{examples} for other examples of slice indexing.) \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_isfmt(text)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{text} & str \\
+					returns: & \multicolumn{2}{l}{bool}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Determine if given text str is a valid Stata format. In calendar formats, the calendar name is not checked for validity. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_islmname(text)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{text} & str \\
+					returns: & \multicolumn{2}{l}{bool}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Determine if given text str is a valid local macro name. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_ismissing(value)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{value} & int, float, MissingValue, or \texttt{None} \\
+					returns: & \multicolumn{2}{l}{bool}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Determine if given value is considered a missing value. Function returns \lstinline{True} if \lstinline{value} is \lstinline{None} or a \lstinline{MissingValue} instance. If \lstinline{value} is float, the function tests whether the value is inside the non-missing range for doubles in Stata, which is approximately $[-1.798 \times 10^{308},\ 8.988 \times 10^{307}]$ (see \lstinline{help dta} in Stata, specifically, ``Representation of numbers''). If \lstinline{value} is outside this range, \lstinline{st_ismissing} returns \lstinline{True}, otherwise \lstinline{False}. \newline
+		
+			
+			\ \newline
+			\noindent \lstinline$st_isname(text)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{text} & str \\
+					returns: & \multicolumn{2}{l}{bool}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Determine if given text str is a valid name for scalars or global macros, for example. To test for valididy as a local name use \lstinline$st_islmname$. To test for validity as a Stata variable name use \lstinline$st_isvarname$. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_isnumfmt(text)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{text} & str \\
+					returns: & \multicolumn{2}{l}{bool}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Determine if given text str is a valid Stata numerical format. Numerical formats are any valid formats that are not string formats. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_isnumvar(varID)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{varID} & int or str \\
+					returns: & \multicolumn{2}{l}{bool}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Determine if given Stata variable is a numeric variable. The variable can be specified by its integer index, by its name, or by abbreviation of its name. If \lstinline{varID} is an integer, then it is allowed to be in the range
+			\[
+				-\texttt{st\_nvar()} \leq \texttt{varID} < \texttt{st\_nvar()}
+			\]
+			with negative values interpreted in the usual way. Values outside this range will cause an \lstinline{IndexError}. If \lstinline{varID} is a string, an invalid or ambiguous abbreviation will cause a \lstinline{ValueError}. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_isstrfmt(text)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{text} & str \\
+					returns: & \multicolumn{2}{l}{bool}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Determine if given text str is a valid Stata string format. \newline
+			
+						
+			\ \newline
+			\noindent \lstinline$st_isstrvar(varID)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{varID} & int or str \\
+					returns: & \multicolumn{2}{l}{bool}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Check whether given Stata variable is a string variable. The variable can be specified by its integer index, by its name, or by abbreviation of its name. If \lstinline{varID} is an integer, then it is allowed to be in the range
+			\[
+				-\texttt{st\_nvar()} \leq \texttt{varID} < \texttt{st\_nvar()}
+			\]
+			with negative values interpreted in the usual way. Values outside this range will cause an \lstinline{IndexError}. If \lstinline{varID} is a string, an invalid or ambiguous abbreviation will cause a \lstinline{ValueError}. \newline
+		
+			
+			\ \newline
+			\noindent \lstinline$st_isvarname(text)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{text} & str \\
+					returns: & \multicolumn{2}{l}{bool}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Determine if given text str is a valid Stata variable name. See manual [U] \S11.3 Naming conventions. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_local(macroname)$ \\
+			\noindent \lstinline$st_local(macroname, value)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent with 1 argument:
+			
+			\indent \qquad \begin{tabular}{rrl}
+					arguments: & \texttt{macroname} & str \\
+					returns: & \multicolumn{2}{l}{str}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent
+			\indent with 2 arguments:
+			
+			\indent \qquad \begin{tabular}{rrl}
+					arguments: & \texttt{macroname} & str \\
+					  & \texttt{value} & str \\
+					returns: & \multicolumn{2}{l}{None}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Get value from given local macro if using 1-argument version, or set the value of the local macro if using the 2-argument version. In the 1-argument version, if the local macro does not exist the return value will be the empty string. In either version, if the local name is malformed a \lstinline{ValueError} will be raised. \newline
+			
+						
+			\ \newline
+			\noindent \lstinline$st_Matrix(matname)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{matname} & str \\
+					returns: & \multicolumn{2}{l}{class instance}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Note the capital \lstinline{M}. This function creates a view onto a Stata matrix. See \S\ref{st_Matrix_example} for example usage. If no matrix is found with name \lstinline{matname}, a \lstinline{ValueError} is raised. 
+			
+			Unlike Mata's \lstinline{st_matrix}, the \lstinline{st_Matrix} here cannot access \lstinline{r()} and \lstinline{e()} matrices. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_matrix_el(matname, row, col)$ \\
+			\noindent \lstinline$st_matrix_el(matname, row, col, value)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent with 3 arguments:
+			
+			\indent \qquad \begin{tabular}{rrl}
+					arguments: & \texttt{matname} & str \\
+						& \texttt{row} & int \\
+						& \texttt{col} & int \\
+					returns: & \multicolumn{2}{l}{float or MissingValue}
+				\end{tabular}
+				
+			\vspace{1.5mm}
+			\indent with 4 arguments:
+			
+			\indent \qquad \begin{tabular}{rrl}
+					arguments: & \texttt{matname} & str \\
+						& \texttt{row} & int \\
+						& \texttt{col} & int \\
+						& \texttt{value} & int, float, MissingValue, or \texttt{None} \\
+					returns: & \multicolumn{2}{l}{\texttt{None}}
+				\end{tabular}
+				
+			\vspace{1.5mm}
+			\noindent For the given matrix, get the value in the given row and column if using the 3-argument version, or replace the value if using the 4-argument version. If no matrix is found with name \lstinline{matname}, a \lstinline{ValueError} is raised. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_nobs()$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rl}
+					returns: & int
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Get current number of observations. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_numscalar(scalarname)$ \\
+			\noindent \lstinline$st_numscalar(scalarname, value)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent with 1 argument:
+			
+			\indent \qquad \begin{tabular}{rrl}
+					arguments: & \texttt{scalarname} & str \\
+					returns: & \multicolumn{2}{l}{float or MissingValue}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent with 2 arguments:
+			
+			\indent \qquad \begin{tabular}{rrl}
+					arguments: & \texttt{scalarname} & str \\
+					  & \texttt{value} & int, float, MissingValue, or \texttt{None} \\
+					returns: & \multicolumn{2}{l}{\texttt{None}}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Get value from given numerical scalar if using 1-argument version, or set the value if using 2-argument version. In the 1-argument version, if the scalar does not exist a \lstinline{ValueError} will be raised. Note this is unlike Mata, where \lstinline{st_numscalar} returns \lstinline{J(0,0,.)} if the scalar does not exist. In both 1-argument and 2-argument versions, if the scalar name is malformed a \lstinline{ValueError} will be raised. 
+			
+			Unlike Mata's \lstinline{st_numscalar}, this \lstinline{st_numscalar} cannot access \lstinline{r()}, \lstinline{e()}, and \lstinline{c()} macros. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_nvar()$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rl}
+					returns: & int
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Get total number of variables. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_rows(matname)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{matname} & str \\
+					returns: & \multicolumn{2}{l}{int}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Get number of rows in given matrix. Returns 0 if there is no Stata matrix with name \lstinline$matname$. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$_st_sdata(obsnum, varnum)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{obsnum} & int \\
+						& \texttt{varnum} & int \\
+					returns: & \multicolumn{2}{l}{str}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Get value from given string variable in given observation. The allowed argument values are 
+			\[
+				-\texttt{st\_nobs()} \leq \texttt{obsnum} < \texttt{st\_nobs()}
+			\]
+			and
+			\[
+				-\texttt{st\_nvar()} \leq \texttt{varnum} < \texttt{st\_nvar()}
+			\]
+			(assuming plugin is called through \lstinline$python.ado$ or used in accordance with recommendations made in \S\ref{using_plugin}). Negative values are interpreted in the usual way for Python indexes. Values outside of these ranges will cause an \lstinline$IndexError$. Note this is unlike in Mata, where \lstinline{_st_sdata()} does not abort with error for invalid indices, but instead returns an empty string. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_sdata(obsnums, varIDs)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{obsnums} & single int or iterable of int \\
+						& \texttt{varIDs} & single int, single str, or iterable of int or str \\
+					returns: & \multicolumn{2}{l}{list of lists of str}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Get values in given observations and given string Stata variables. The function returns a list of lists, with one sub-list for each observation. See \S\ref{data_and_store_example} for example usage and return values. 
+			
+			This function uses \lstinline{_st_sdata()}, so \lstinline{obsnums} and \lstinline{varID} (if integer) can be negative and if out of range will raise an \lstinline{IndexError}. If strings are used in \lstinline{varIDs}, a \lstinline{ValueError} will be raised for ambiguous or incorrect abbreviations. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$_st_sstore(obsnum, varnum, value)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{obsnum} & int \\
+					  & \texttt{varnum} & int \\						
+						& \texttt{value} & str \\
+					returns: & \multicolumn{2}{l}{\texttt{None}}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Set value in given numerical variable in given observation. The allowed argument values are 
+			\[
+				-\texttt{st\_nobs()} \leq \texttt{obsnum} < \texttt{st\_nobs()}
+			\]
+			and
+			\[
+				-\texttt{st\_nvar()} \leq \texttt{varnum} < \texttt{st\_nvar()}
+			\]
+			(assuming plugin is called through \lstinline$python.ado$ or used in accordance with recommendations made in \S\ref{using_plugin}). Negative values are interpreted in the usual way for Python indexes. Values outside of these ranges will cause an \lstinline$IndexError$. Note this is unlike in Mata, where \lstinline{_st_sstore()} does not abort with error for invalid indices. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_sstore(obsnums, varIDs, values)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{obsnums} & single int or iterable of int \\
+						& \texttt{varIDs} & single int, single string, or iterable of int or str \\
+						& \texttt{values} & iterable of str \\
+					returns: & \multicolumn{2}{l}{None}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Set values in given observations and given string Stata variables. The dimensions of the input \lstinline{values} should match the dimensions implied by \lstinline{obsnums} and \lstinline{varID}. For example, if \lstinline{obsnums} is \lstinline{(0,1,2)} and \lstinline{varIDs} is \lstinline{(2,4)} (and if those are valid for the loaded data set), then any of these input \lstinline{values} would be valid:
+			\begin{align*}
+				\texttt{values} &= \texttt{[['a','b'], ['c','d'], ['e','f']]} \\
+				\texttt{values} &= \texttt{(('a','b'), ('c','d'), ('e','f'))} \\
+				\texttt{values} &= \texttt{(['a','b'], ['c','d'], ['e','f'])} \\
+				\texttt{values} &= \texttt{[['a']*2]*3}
+			\end{align*}
+			and these would be invalid:
+			\begin{align*}
+				\texttt{values} &= \texttt{[['a','b','c'], ['d','e','f']]} \\
+				\texttt{values} &= \texttt{(('a','b','c','d','e','f'))} \\
+				\texttt{values} &= \texttt{('a','b','c','d','e','f')}
+			\end{align*}
+See \S\ref{data_and_store_example} for other examples. 
+			
+			This function uses \lstinline{_st_sstore()}, so \lstinline{obsnums} and \lstinline{varID} (if integer) can be negative and if out of range will raise an \lstinline{IndexError}. If there is an invalid index, some values may be set before the \lstinline{IndexError} is raised. If strings are used in \lstinline{varIDs}, a \lstinline{ValueError} will be raised for ambiguous or incorrect abbreviations. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$_st_store(obsnum, varnum, value)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{obsnum} & int \\
+						& \texttt{varnum} & int \\
+						& \texttt{value} & int, float, MissingValue, or \texttt{None} \\
+					returns: & \multicolumn{2}{l}{\texttt{None}}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Set value in given numerical variable in given observation. The allowed argument values are 
+			\[
+				-\texttt{st\_nobs()} \leq \texttt{obsnum} < \texttt{st\_nobs()}
+			\]
+			and
+			\[
+				-\texttt{st\_nvar()} \leq \texttt{varnum} < \texttt{st\_nvar()}
+			\]
+			(assuming plugin is called through \lstinline$python.ado$ or used in accordance with recommendations made in \S\ref{using_plugin}). Negative values are interpreted in the usual way for Python indexes. Values outside of these ranges will cause an \lstinline$IndexError$. Note this is unlike in Mata, where \lstinline{_st_store()} does not abort with error for invalid indices. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_store(obsnums, varIDs, values)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{obsnums} & single int or iterable of int \\
+						& \texttt{varIDs} & single int, single string, or iterable of int or str \\
+						& \texttt{values} & iterable of int, float, MissingValue, or None \\
+					returns: & \multicolumn{2}{l}{None}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Set values in given observations and given string Stata variables. The dimensions of the input \lstinline{values} should match the dimensions implied by \lstinline{obsnums} and \lstinline{varID}. For example, if \lstinline{obsnums} is \lstinline{(0,1,2)} and \lstinline{varIDs} is \lstinline{(2,4)} (and if those are valid for the loaded data set), then any of these input \lstinline{values} would be valid:
+			\begin{align*}
+				\texttt{values} &= \texttt{[[0,1], [2,3], [4,5]]} \\
+				\texttt{values} &= \texttt{((0,1), (2,3), (4,5))} \\
+				\texttt{values} &= \texttt{([0,1], [2,3], [4,5])} \\
+				\texttt{values} &= \texttt{[[0]*2]*3}
+			\end{align*}
+			and these would be invalid:
+			\begin{align*}
+				\texttt{values} &= \texttt{[[0,1,2], [3,4,5]]} \\
+				\texttt{values} &= \texttt{((0,1,2,3,4,5))} \\
+				\texttt{values} &= \texttt{(0,1,2,3,4,5)}
+			\end{align*}
+See \S\ref{data_and_store_example} for other examples. 
+			
+			This function uses \lstinline{_st_store()}, so \lstinline{obsnums} and \lstinline{varID} (if integer) can be negative and if out of range will raise an \lstinline{IndexError}. If there is an invalid index, some values may be set before the \lstinline{IndexError} is raised. If strings are used in \lstinline{varIDs}, a \lstinline{ValueError} will be raised for ambiguous or incorrect abbreviations. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_varindex(text)$ \\
+			\noindent \lstinline$st_varindex(text, abbr_ok)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent with 1 argument:
+			
+			\indent \qquad \begin{tabular}{rrl}
+					arguments: & \texttt{text} & str \\
+					returns: & \multicolumn{2}{l}{int}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent with 2 arguments:
+			
+			\indent \qquad \begin{tabular}{rrl}
+					arguments: & \texttt{text} & str \\
+					  & \texttt{abbr\_ok} & bool or coercible to bool \\
+					returns: & \multicolumn{2}{l}{int}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Find the index of the given Stata variable. Abbreviations are allowed if using the two-argument version and the second argument is truthy. Otherwise, the given text must match a Stata variable name exactly. A \lstinline$ValueError$ will be raised if the text does not match a Stata variable or if the abbreviation is ambiguous. Unlike Mata's \lstinline{st_varindex}, this \lstinline{st_varindex} only allows a single name or abbreviation per call. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_varname(varnum)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					arguments: & \texttt{varnum} & int \\
+					returns: & \multicolumn{2}{l}{str}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Return the name of the Stata variable at given index. The allowed argument values are
+			\[
+				-\texttt{st\_nvar()} \leq \texttt{varnum} < \texttt{st\_nvar()}
+			\]
+			(assuming plugin is called through \lstinline$python.ado$ or used in accordance with recommendations made in \S\ref{using_plugin}). Negative values are interpreted in the usual way for Python indexes. A value outside of this ranges will cause an \lstinline$IndexError$. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_View()$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+					returns: & \multicolumn{2}{l}{class instance}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Note the capital \lstinline{V}. This function creates a view onto the current Stata data set. See \S\ref{st_View_example} for example usage. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_viewobs(viewObj)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+				arguments: & \texttt{viewObj} & instance of \lstinline$st_View$ \\
+					returns: & \multicolumn{2}{l}{tuple of int}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Return tuple containing observation numbers in the \lstinline$st_View$ instance. \newline
+			
+			
+			\ \newline
+			\noindent \lstinline$st_viewvars(viewObj)$
+								
+			\vspace{1.5mm}
+			\noindent 
+			\indent \begin{tabular}{rrl}
+				arguments: & \texttt{viewObj} & instance of \lstinline$st_View$ \\
+					returns: & \multicolumn{2}{l}{tuple of int}
+				\end{tabular}
+								
+			\vspace{1.5mm}
+			\noindent Return tuple containing the variable indices in the \lstinline$st_View$ instance. \newline
+
+
+
+\section{Miscellanea} \label{misc}
+		
+		You can use \lstinline$python.ado$ or the plugin to run a python file in \lstinline$.do$ and \lstinline$.ado$ files. You can also start an interactive session from \lstinline$.do$ or \lstinline{.ado} files, but you cannot use Python statements in \lstinline$.do$ or \lstinline$.ado$ files.
+		
+		If an interactive session is begun in a \lstinline{.do} or \lstinline{.ado} file, execution of that file is effectively halted. When the interactive interpreter is exited, execution of the file resumes from that point. Here is an example of a file called \lstinline$do_example.do$ that starts an interactive Python session: \newline
+
+\hrule
+\begin{lstlisting}
+noi di "in do file"
+noi python
+noi di "back in do file"
+\end{lstlisting}
+\hrule
+
+\vspace{5mm}
+\noindent Example usage:
+\begin{stlog}
+{\smallskip}
+. run do_example
+in do file
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. "in python"
+'in python'
+{\smallskip}
+. exit()
+\HLI{79}
+back in do file
+\end{stlog}
+
+\vspace{5mm}
+\noindent Here is another example, with a file called \lstinline{ado_example.ado} (see \S\ref{using_plugin}): \newline
+
+\hrule
+\begin{lstlisting}
+program ado_example
+  noi di "in ado_example"
+  plugin call python_plugin
+  noi di "back in ado_example"
+  noi di "`scname' = " scalar(`scname')
+end
+
+program python_plugin, plugin
+\end{lstlisting}
+\hrule
+
+\vspace{5mm}
+\noindent Example usage:
+\begin{stlog}
+{\smallskip}
+. ado_example
+in ado_example
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. st_local("scname", "the_scalar")
+{\smallskip}
+. st_numscalar("the_scalar", 12345)
+{\smallskip}
+. exit()
+\HLI{79}
+back in ado_example
+the_scalar = 12345
+\end{stlog}
+
+
+\section{Using the plugin directly} \label{using_plugin}
+
+	\subsection{Syntax}
+	
+	Two ways of calling the plugin will be shown here, the minimal syntax, which is not generally recommended, and then the recommended syntax, which is more cumbersome. With either syntax, the plugin will need to be introduced to Stata with \lstinline{program python_plugin, plugin}. 
+	
+	Contrary to usual plugin usage, arguments for the plugin should not be included in the plugin call. Arguments can instead be put in locals and accessed through \lstinline{st_local} inside the plugin, as done in \lstinline{python.ado} (see \S\ref{syntax}).
+
+	The mininal syntax for calling the plugin is
+	{\small
+	\begin{lstlisting}
+  plugin call python_plugin [varlist] [, file_name ]
+	\end{lstlisting}}
+	
+	\noindent but this syntax should not be used if wanting to interact with Stata variables. In fact, because of reasons described below, the plugin has been written so that the varlist is seen to be empty when using the minimal syntax. If wanting to use the plugin to interact with Stata variables, the plugin should be called with 
+	{\small
+	\begin{lstlisting}
+  ereturn clear
+  local _pynallvars = 0
+  if (c(k) > 0) {
+    foreach var of varlist * {
+      local _pyallvars`_pynallvars' = "`var'"
+      local _pynallvars = `_pynallvars' + 1
+    }
+  }
+  plugin call python_plugin `=cond(c(k) > 0, "*", "")' ///
+      [, file_name ]
+	\end{lstlisting}}
+	
+	With either version, the plugin runs the file if \lstinline{file_name} is given. Otherwise, an interactive session is begun. In the second version, variables of interest can be specified in locals, as is done in \lstinline{python.ado} (see \S\ref{syntax}).
+	
+	The second version solves several problems with the plugin:
+	\begin{enumerate}
+		\item Estimation commands can introduce ``hidden'' variables that are partially visible in the plugin and occupy a position in the varlist, but cannot be interacted with (as far as I know).
+		
+		The purpose of the \lstinline{ereturn clear} is to clear any hidden variables.
+		
+		\item If a subset of variables could be specified, indexing of variables can be inconsistent between functions in the plugin. Some functions index relative to the specified set, and some index relative to the entire varlist (including hidden variables). Clearing hidden variables with \lstinline{ereturn clear} and using \lstinline{`=cond(c(k) > 0, "*", "")'} in the plugin call help to ensure that the indexing is consistent.
+		
+		The minimal syntax given above implies that a subset of variables can be specified. In fact, while the syntax is allowed, the plugin tries to disallow actually using subsets because of the problems discussed here.
+		
+		\item The remainder of the extra lines in the second version provide the variable names to the plugin so that \lstinline{st_varname} can look up names by index and \lstinline{st_varindex} can return the index for a name. Supplying the variable names in this way also allows the C code to be written so that if the simpler, not-recommended syntax is used, the user is presented with an empty varlist rather than inconsistent indexing and hidden variables.
+	\end{enumerate}
+	
+	
+\section{Examples} \label{examples}
+	
+\subsection{The interactive interpreter takes single-line inputs} \label{single_line_example}
+
+The error below comes from trying to use a multi-line statement (the user hit the \lstinline$enter$ key after typing \lstinline$for i in range(5):$). The following lines in the example show ways to squeeze moderately complicated statements into a single line. The definition of \lstinline$mlf$ below does not work in Python 2.7.
+
+\begin{stlog}
+{\smallskip}
+. python
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. for i in range(5):
+{\color{red}  File "<string>", line 1
+    for i in range(5):
+                     {\caret}
+SyntaxError: unexpected EOF while parsing}
+{\smallskip}
+. for i in range(5): print(i)
+0
+1
+2
+3
+4
+{\smallskip}
+. def mlf(): print("multi-", end="") ; print("line", end=" ") ; print("function
+> ")
+{\smallskip}
+. mlf()
+multi-line function
+{\smallskip}
+. exit()
+\HLI{79}
+\end{stlog}
+
+
+\subsection{Missing values} \label{missing_value_example}
+
+In plugin functions that set the value of a numeric quantity, \lstinline$None$ can be used in input to represent Stata's \lstinline$.$ missing value. In general, though, \lstinline$None$ should not be thought of as the analog of Stata's \lstinline{.} value.
+
+Missing values are implemented in the \lstinline$stata_missing$ module, see \S\ref{stata_missing}, and will often have to be imported before using directly. In the following example, though, notice that \lstinline{st_numscalar("new")} returned a \lstinline{MissingValue} instance before anything was imported from \lstinline{stata_missing}.
+
+\begin{stlog}
+{\smallskip}
+. python
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. st_numscalar("new", None)
+{\smallskip}
+. st_numscalar("new")
+.
+{\smallskip}
+. 0 < 100 < float("inf")
+True
+{\smallskip}
+. 0 < . < float("inf")
+{\color{red}  File "<string>", line 1
+    0 < . < float("inf")
+        {\caret}
+SyntaxError: invalid syntax}
+{\smallskip}
+. from stata_missing import MISSING as mv
+{\smallskip}
+. 0 < mv < float("inf")
+True
+{\smallskip}
+. mv
+.
+{\smallskip}
+. mv.value
+8.98846567431158e+307
+{\smallskip}
+. from stata_missing import MISSING_VALS as mvs
+{\smallskip}
+. mvs
+(., .a, .b, .c, .d, .e, .f, .g, .h, .i, .j, .k, .l, .m, .n, .o, .p, .q, .r, .s,
+>  .t, .u, .v, .w, .x, .y, .z)
+{\smallskip}
+. st_numscalar("new", mvs[14])
+{\smallskip}
+. st_numscalar("new")
+.n
+{\smallskip}
+. mv == mvs[0]
+True
+{\smallskip}
+. exit()
+\HLI{79}
+\end{stlog}
+
+		
+\subsection{Basic functions} \label{basic_example}
+
+\begin{stlog}
+{\smallskip}
+. clear
+{\smallskip}
+. sysuse auto
+(1978 Automobile Data)
+{\smallskip}
+. list make-trunk in 1/5
+{\smallskip}
+     {\TLC}\HLI{56}{\TRC}
+     {\VBAR} make            price   mpg   rep78   headroom   trunk {\VBAR}
+     {\LFTT}\HLI{56}{\RGTT}
+  1. {\VBAR} AMC Concord     4,099    22       3        2.5      11 {\VBAR}
+  2. {\VBAR} AMC Pacer       4,749    17       3        3.0      11 {\VBAR}
+  3. {\VBAR} AMC Spirit      3,799    22       .        3.0      12 {\VBAR}
+  4. {\VBAR} Buick Century   4,816    20       3        4.5      16 {\VBAR}
+  5. {\VBAR} Buick Electra   7,827    15       4        4.0      20 {\VBAR}
+     {\BLC}\HLI{56}{\BRC}
+{\smallskip}
+. python
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. st_varindex("not_a_variable")
+{\color{red}variable not_a_variable not found
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ValueError: Stata variable not found (abbrev. not allowed)}
+{\smallskip}
+. st_varindex("make")
+0
+{\smallskip}
+. st_isstrvar(0)
+True
+{\smallskip}
+. _st_sdata(0,0)
+'AMC Concord'
+{\smallskip}
+. st_varindex("rep")
+{\color{red}Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ValueError: no Stata variable found (abbrev. not allowed)}
+{\smallskip}
+. st_varindex("rep78")
+3
+{\smallskip}
+. st_varindex("rep", True)
+3
+{\smallskip}
+. st_isnumvar("rep")
+True
+{\smallskip}
+. _st_data(0,3)
+3.0
+{\smallskip}
+. exit()
+\HLI{79}
+\end{stlog}
+
+
+\subsection{Stata variable types do not change on replacement} \label{no_type_change_example}
+
+In Stata, if you replace a numerical variable's value with a value outside its type range, the value gets promoted (unless the original type is \lstinline{float}). For example, the range of non-missing values in \lstinline{byte} is $-127$ to $100$. If you replace a \lstinline{byte} value with something outside of this range, the variable will be promoted to a type that can hold larger values. If you replace an integer variable value with a non-integer like $1.5$, the type will be promoted to \lstinline$double$. However, if you make these replacements in Python, the type will not be promoted. If you replace with a value outside the type's range, a missing value will be inserted. If you replace an integer variable value with a non-integer like $1.5$, the value will be truncated to an integer. (By the way, this also happens when replacing Stata variable values using Mata.)
+
+First, in Stata.
+
+\begin{stlog}{\smallskip}
+. clear
+{\smallskip}
+. set obs 1
+obs was 0, now 1
+{\smallskip}
+. gen byte b = 0
+{\smallskip}
+. gen int i = 0
+{\smallskip}
+. gen long l = 0
+{\smallskip}
+. replace b = 101 in 1
+b was byte now int
+(1 real change made)
+{\smallskip}
+. replace i = 120000 in 1
+i was int now long
+(1 real change made)
+{\smallskip}
+. replace l = 1.5 in 1
+l was long now double
+(1 real change made)
+{\smallskip}
+. list
+{\smallskip}
+     {\TLC}\HLI{20}{\TRC}
+     {\VBAR}   b        i     l {\VBAR}
+     {\LFTT}\HLI{20}{\RGTT}
+  1. {\VBAR} 101   120000   1.5 {\VBAR}
+     {\BLC}\HLI{20}{\BRC}
+\end{stlog}
+		
+\vspace{2mm}
+Now in Python.
+		
+\begin{stlog}
+{\smallskip}
+. clear
+{\smallskip}
+. set obs 1
+obs was 0, now 1
+{\smallskip}
+. gen byte b = 0
+{\smallskip}
+. gen int i = 0
+{\smallskip}
+. gen long l = 0
+{\smallskip}
+. python
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. _st_store(0, 0, 101)
+{\smallskip}
+. _st_store(0, 1, 120000)
+{\smallskip}
+. _st_store(0, 2, 1.5)
+{\smallskip}
+. exit()
+\HLI{79}
+{\smallskip}
+. list
+{\smallskip}
+     {\TLC}\HLI{11}{\TRC}
+     {\VBAR} b   i   l {\VBAR}
+     {\LFTT}\HLI{11}{\RGTT}
+  1. {\VBAR} .   .   1 {\VBAR}
+     {\BLC}\HLI{11}{\BRC}
+\end{stlog}
+
+
+\subsection{Data and store functions} \label{data_and_store_example}
+
+This example demonstrates the usage of functions that get and set Stata data values: \lstinline$st_data$, \lstinline$st_store$, \lstinline$st_sdata$, and \lstinline$st_sstore$. Some of the other data functions are used elsewhere, \lstinline$_st_data$ and \lstinline$_st_sdata$ in \S\ref{basic_example} and the \lstinline$st_View$ class in \S\ref{st_View_example}.
+
+We will use a copy of the auto data set rather than the original because values will be replaced.
+
+\begin{stlog}
+{\smallskip}
+. clear
+{\smallskip}
+. sysuse auto
+(1978 Automobile Data)
+{\smallskip}
+. save auto_copy
+file auto_copy.dta saved
+{\smallskip}
+. python
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. st_data(0, 0)
+{\color{red}Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "stata.py", line 206, in st_data
+    raise TypeError("only numeric Stata variables allowed")
+TypeError: only numeric Stata variables allowed}
+{\smallskip}
+. st_sdata(0,0)
+[['AMC Concord']]
+{\smallskip}
+. st_sdata(range(0,74,10), 0)
+[['AMC Concord'], ['Cad. Deville'], ['Dodge Diplomat'], ['Merc. Marquis'], ['Ol
+> ds Toronado'], ['Pont. Phoenix'], ['Honda Accord'], ['VW Diesel']]
+{\smallskip}
+. for row in st_sdata(range(0,74,10), 0): print(row)
+['AMC Concord']
+['Cad. Deville']
+['Dodge Diplomat']
+['Merc. Marquis']
+['Olds Toronado']
+['Pont. Phoenix']
+['Honda Accord']
+['VW Diesel']
+{\smallskip}
+. st_data(0,1)
+[[4099.0]]
+{\smallskip}
+. st_data(0, range(1,12,3))
+[[4099.0, 2.5, 186.0, 3.5799999237060547]]
+{\smallskip}
+. st_data(range(0,74,10), range(1,12,3))
+[[4099.0, 2.5, 186.0, 3.5799999237060547], [11385.0, 4.0, 221.0, 2.279999971389
+> 7705], [4010.0, 4.0, 206.0, 2.4700000286102295], [6165.0, 3.5, 212.0, 2.25999
+> 9990463257], [10371.0, 3.5, 206.0, 2.4100000858306885], [4424.0, 3.5, 203.0, 
+> 3.0799999237060547], [5799.0, 3.0, 172.0, 3.049999952316284], [5397.0, 3.0, 1
+> 55.0, 3.7799999713897705]]
+{\smallskip}
+. for row in st_data(range(0,74,10), range(1,12,3)): print(row)
+[4099.0, 2.5, 186.0, 3.5799999237060547]
+[11385.0, 4.0, 221.0, 2.2799999713897705]
+[4010.0, 4.0, 206.0, 2.4700000286102295]
+[6165.0, 3.5, 212.0, 2.259999990463257]
+[10371.0, 3.5, 206.0, 2.4100000858306885]
+[4424.0, 3.5, 203.0, 3.0799999237060547]
+[5799.0, 3.0, 172.0, 3.049999952316284]
+[5397.0, 3.0, 155.0, 3.7799999713897705]
+{\smallskip}
+. st_store(range(0,74,10), range(1,12,3), [[None]*3])
+{\color{red}Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "stata.py", line 226, in st_store
+    obs, cols, vals = _parseObsColsVals(obs, cols, vals)
+  File "stata.py", line 193, in _parseObsColsVals
+    raise ValueError("length of value does not match number of rows")
+ValueError: length of value does not match number of rows}
+{\smallskip}
+. st_store(range(0,74,10), range(1,12,3), [[None]*3]*8)
+{\color{red}Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "stata.py", line 226, in st_store
+    obs, cols, vals = _parseObsColsVals(obs, cols, vals)
+  File "stata.py", line 195, in _parseObsColsVals
+    raise ValueError("inner dimensions do not match number of columns")
+ValueError: inner dimensions do not match number of columns}
+{\smallskip}
+. st_store(range(0,74,10), range(1,12,3), [[None]*4]*8)
+{\smallskip}
+. for row in st_data(range(0,74,10), range(1,12,3)): print(row)
+[., ., ., .]
+[., ., ., .]
+[., ., ., .]
+[., ., ., .]
+[., ., ., .]
+[., ., ., .]
+[., ., ., .]
+[., ., ., .]
+{\smallskip}
+. exit()
+\HLI{79}
+{\smallskip}
+. list price head length gear if mod(_n-1, 10) == 0
+{\smallskip}
+     {\TLC}\HLI{38}{\TRC}
+     {\VBAR} price   headroom   length   gear_r{\tytilde}o {\VBAR}
+     {\LFTT}\HLI{38}{\RGTT}
+  1. {\VBAR}     .          .        .          . {\VBAR}
+ 11. {\VBAR}     .          .        .          . {\VBAR}
+ 21. {\VBAR}     .          .        .          . {\VBAR}
+ 31. {\VBAR}     .          .        .          . {\VBAR}
+ 41. {\VBAR}     .          .        .          . {\VBAR}
+     {\LFTT}\HLI{38}{\RGTT}
+ 51. {\VBAR}     .          .        .          . {\VBAR}
+ 61. {\VBAR}     .          .        .          . {\VBAR}
+ 71. {\VBAR}     .          .        .          . {\VBAR}
+     {\BLC}\HLI{38}{\BRC}
+{\smallskip}
+. python
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. from stata_missing import MISSING_VALS as mvs
+{\smallskip}
+. [ 0, 1, mvs[1], mvs[4] ]
+[0, 1, .a, .d]
+{\smallskip}
+. st_store(range(0,74,10), range(1,12,3), [ [0, 1, mvs[1], mvs[4]] ]*8)
+{\smallskip}
+. for row in st_data(range(0,74,10), range(1,12,3)): print(row)
+[0.0, 1.0, .a, .d]
+[0.0, 1.0, .a, .d]
+[0.0, 1.0, .a, .d]
+[0.0, 1.0, .a, .d]
+[0.0, 1.0, .a, .d]
+[0.0, 1.0, .a, .d]
+[0.0, 1.0, .a, .d]
+[0.0, 1.0, .a, .d]
+{\smallskip}
+. exit()
+\HLI{79}
+{\smallskip}
+. list price head length gear if mod(_n-1, 10) == 0
+{\smallskip}
+     {\TLC}\HLI{38}{\TRC}
+     {\VBAR} price   headroom   length   gear_r{\tytilde}o {\VBAR}
+     {\LFTT}\HLI{38}{\RGTT}
+  1. {\VBAR}     0        1.0       .a         .d {\VBAR}
+ 11. {\VBAR}     0        1.0       .a         .d {\VBAR}
+ 21. {\VBAR}     0        1.0       .a         .d {\VBAR}
+ 31. {\VBAR}     0        1.0       .a         .d {\VBAR}
+ 41. {\VBAR}     0        1.0       .a         .d {\VBAR}
+     {\LFTT}\HLI{38}{\RGTT}
+ 51. {\VBAR}     0        1.0       .a         .d {\VBAR}
+ 61. {\VBAR}     0        1.0       .a         .d {\VBAR}
+ 71. {\VBAR}     0        1.0       .a         .d {\VBAR}
+     {\BLC}\HLI{38}{\BRC}
+\end{stlog}
+
+
+\subsection{Data and store functions, string indices} \label{data_and_store_string_example}
+
+This example repeats part of the previous example, but uses string indices for Stata variables. In the last few inputs, notice that the string indices can appear in a single string or in an iterable of separate strings, or both. String indices can contain the entire name of a variable, or any non-ambiguous abbreviation.
+
+\begin{stlog}
+{\smallskip}
+. clear
+{\smallskip}
+. use auto_copy
+(1978 Automobile Data)
+{\smallskip}
+. python
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. st_data(0, "make")
+{\color{red}Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "C:\\Users\\jfiedler\\Documents\\StataFiles\\stata_plugins\\stata.py", line 20
+> 6, in st_data
+    raise TypeError("only numeric Stata variables allowed")
+TypeError: only numeric Stata variables allowed}
+{\smallskip}
+. st_sdata(0, "make")
+[['AMC Concord']]
+{\smallskip}
+. st_sdata(range(0,74,10), 0)
+[['AMC Concord'], ['Cad. Deville'], ['Dodge Diplomat'], ['Merc. Marquis'], ['Ol
+> ds Toronado'], ['Pont. Phoenix'], ['Honda Accord'], ['VW Diesel']]
+{\smallskip}
+. st_sdata(range(0,74,10), "make")
+[['AMC Concord'], ['Cad. Deville'], ['Dodge Diplomat'], ['Merc. Marquis'], ['Ol
+> ds Toronado'], ['Pont. Phoenix'], ['Honda Accord'], ['VW Diesel']]
+{\smallskip}
+. for row in st_sdata(range(0,74,10), "make"): print(row)
+['AMC Concord']
+['Cad. Deville']
+['Dodge Diplomat']
+['Merc. Marquis']
+['Olds Toronado']
+['Pont. Phoenix']
+['Honda Accord']
+['VW Diesel']
+{\smallskip}
+. st_data(0, "price")
+[[4099.0]]
+{\smallskip}
+. st_data(0, "price headroom length gear_ratio")
+[[4099.0, 2.5, 186.0, 3.5799999237060547]]
+{\smallskip}
+. st_data(0, "price headroom length gear_ratio") == st_data(0, "pr he le ge")
+True
+{\smallskip}
+. st_data(0, "price head length gear") == st_data(0, ("pr", "he", "le", "ge"))
+True
+{\smallskip}
+. st_data(0, "price head length gear") == st_data(0, ("pr he", "le ge"))
+True
+{\smallskip}
+. st_data(0, "price head length gear") == st_data(0, ("pr", 4, 7, "ge"))
+True
+{\smallskip}
+. exit()
+\HLI{79}
+\end{stlog}
+
+
+\subsection{Accessing locals} \label{local_example}
+
+This example begins with defining local and global macros in Stata, then using \lstinline$python.ado$ and the \lstinline$python_plugin$ to access them. 
+
+\begin{stlog}
+{\smallskip}
+. local a = "a local"
+{\smallskip}
+. global b = "a global"
+{\smallskip}
+. python
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. st_local("a")
+''
+{\smallskip}
+. st_global("b")
+'a global'
+{\smallskip}
+. st_local("a", "modified")
+{\smallskip}
+. exit()
+\HLI{79}
+{\smallskip}
+. di "`a'"
+a local
+\end{stlog}
+
+\vspace{2mm}
+The attempt to access and modify a local defined outside of \lstinline$python.ado$ failed because, when using \lstinline$python.ado$, the plugin only has access to locals defined within \lstinline$python.ado$. (The following doesn't use the recommended syntax from \S\ref{using_plugin}, but that's ok because we're not interacting with Stata variables.)
+
+\begin{stlog}
+{\smallskip}
+. program python_plugin, plugin
+{\smallskip}
+. plugin call python_plugin
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. st_local("a")
+'a local'
+{\smallskip}
+. st_global("b")
+'a global'
+{\smallskip}
+. st_local("a", "modified")
+{\smallskip}
+. exit()
+\HLI{79}
+{\smallskip}
+. di "`a'"
+modified
+\end{stlog}
+
+
+\subsection{Using \lstinline{st_View}} \label{st_View_example}
+
+We demonstrate use of \lstinline{st_View} with the \lstinline{auto} data set. Later we'll be assigning new values, so we use a copy of the data set. To make the output less wide we drop some Stata variables.
+
+\begin{stlog}
+{\smallskip}
+. clear
+{\smallskip}
+. use auto_copy
+(1978 Automobile Data)
+{\smallskip}
+. drop turn-foreign
+{\smallskip}
+. python
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. v = st_View()
+{\smallskip}
+. v
+{\smallskip}
+  obs: 74
+ vars:  8
+{\smallskip}
+             c0       c1       c2       c3       c4       c5       c6       c7
+ r0 AMC Concord     4099       22        3      2.5       11     2930      186
+ r1   AMC Pacer     4749       17        3        3       11     3350      173
+ r2  AMC Spirit     3799       22        .        3       12     2640      168
+ r3 Buick Centu     4816       20        3      4.5       16     3250      196
+ r4 Buick Elect     7827       15        4        4       20     4080      222
+ r5 Buick LeSab     5788       18        3        4       21     3670      218
+ r6  Buick Opel     4453       26        .        3       10     2230      170
+ r7 Buick Regal     5189       20        3        2       16     3280      200
+ r8 Buick Rivie    10372       16        3      3.5       17     3880      207
+
+--\textit{output shortened}--
+\end{stlog}
+
+\vspace{3mm}
+The last output has been shortened to save space; all 74 rows appear in the Stata output. If you want to see less output, or if you want select a subset of the data, you'll want to use indexing.
+
+Indexing is done by appending [\textit{rows}, \textit{cols}] to the \lstinline{st_View} instance, where \textit{rows} and \textit{cols} are either integers or an iterable of integers (tuple, list, etc.) or a slice (e.g., 3:10 to denote $3, 4, \ldots, 10$ or 3:10:2 to denote $3, 5, 7, 9$). The \textit{cols} index is optional, but the separating comma is not optional, with or without \textit{cols}. 
+
+The syntax for slices is \textit{start}:\textit{stop}:\textit{step} and denotes ``every \textit{step}$^{\text{th}}$ value beginning at \textit{start}, up to, but not including, \textit{stop}''. For example, \lstinline{4:16:3} denotes $4, 7, 10, 13$, but not 16. Any of \textit{start}, \textit{stop}, \textit{step} can be omitted, and if \textit{step} is omitted then the second colon can also be omitted. An omitted \textit{start} is taken to be zero. If \textit{stop} is omitted the slice extends as far as possible in the context. An omitted \textit{step} is taken to be 1. For example,
+\lstinline{4::} is equivalent to \lstinline{4:} is equivalent to \lstinline{4:}(\textit{max}$ + 1$)\lstinline{:1}.
+
+\textbf{Indexing an instance of \lstinline{st_View} always returns another instance of \lstinline{st_View}}. To get values out of an \lstinline{st_View} instance, use \textit{instance}\lstinline{.toList()} or \textit{instance}\lstinline{.get(}\textit{row,col}\lstinline{)}.
+
+\vspace{3mm}
+
+\begin{stlog}
+{\smallskip}
+. v[::6, ::2]
+{\smallskip}
+  obs: 13
+ vars:  4
+{\smallskip}
+             c0        c2        c4        c6
+ r0 AMC Concord        22       2.5      2930
+ r6  Buick Opel        26         3      2230
+r12 Cad. Sevill        21         3      4290
+r18  Chev. Nova        19       3.5      3430
+r24 Ford Mustan        21         2      2650
+r30 Merc. Marqu        15       3.5      3720
+r36 Olds Cutlas        19       4.5      3300
+r42 Plym. Champ        34       2.5      1800
+r48 Pont. Grand        19         2      3210
+r54    BMW 320i        25       2.5      2650
+r60 Honda Accor        25         3      2240
+r66 Toyota Celi        18       2.5      2410
+r72 VW Scirocco        25         2      1990
+{\smallskip}
+. v[0,0]
+{\smallskip}
+  obs: 1
+ vars: 1
+{\smallskip}
+            c0
+r0 AMC Concord
+{\smallskip}
+. v[0, ]
+{\smallskip}
+  obs: 1
+ vars: 8
+{\smallskip}
+            c0       c1       c2       c3       c4       c5       c6       c7
+r0 AMC Concord     4099       22        3      2.5       11     2930      186
+{\smallskip}
+. v[(0,1,2), (0,1,2)]
+{\smallskip}
+  obs: 3
+ vars: 3
+{\smallskip}
+            c0        c1        c2
+r0 AMC Concord      4099        22
+r1   AMC Pacer      4749        17
+r2  AMC Spirit      3799        22
+{\smallskip}
+. v[ :3, :3]
+{\smallskip}
+  obs: 3
+ vars: 3
+{\smallskip}
+            c0        c1        c2
+r0 AMC Concord      4099        22
+r1   AMC Pacer      4749        17
+r2  AMC Spirit      3799        22
+{\smallskip}
+. v[ :3, :3] = [["A", "not num", 2.02], ["B", 11.11, 12.12], ["C", 21.21, 22.22
+> ]]
+{\color{red}Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "stata.py", line 533, in __setitem__
+    setters[col](row, col, value[i][j])
+TypeError: set value should be float, None, or a missing value}
+\end{stlog}
+
+\vspace{3mm}
+The error was caused by trying to assign a string value to a numeric Stata variable.
+\vspace{3mm}
+
+\begin{stlog}
+{\smallskip}
+. v[ :3, :3] = [["A", 1.01, 2.02], ["B", 11.11, 12.12], ["C", 21.21, 22.22]]
+{\smallskip}
+. v[ :3, :3]
+{\smallskip}
+  obs: 3
+ vars: 3
+{\smallskip}
+            c0        c1        c2
+r0           A         1         2
+r1           B        11        12
+r2           C        21        22
+\end{stlog}
+
+\vspace{3mm}
+The Stata variables in columns 1 and 2 (Stata columns 2 and 3) are \lstinline{price} and \lstinline{mpg}, which are both integer type. When floating point values are assigned to these columns through the plugin, their values are truncated (see \S\ref{no_type_change_example}).
+\vspace{3mm}
+
+\begin{stlog}
+{\smallskip}
+. from stata_missing import MISSING_VALS as mvs
+{\smallskip}
+. v[ 1:3, 1:3] = [[mvs[0], mvs[1]], [mvs[2], mvs[3]]]
+{\smallskip}
+. v[ :3, :3]
+{\smallskip}
+  obs: 3
+ vars: 3
+{\smallskip}
+            c0        c1        c2
+r0           A         1         2
+r1           B         .        .a
+r2           C        .b        .c
+{\smallskip}
+. exit()
+\HLI{79}
+{\smallskip}
+. list make-mpg in 1/3
+{\smallskip}
+     {\TLC}\HLI{20}{\TRC}
+     {\VBAR} make   price   mpg {\VBAR}
+     {\LFTT}\HLI{20}{\RGTT}
+  1. {\VBAR} A          1     2 {\VBAR}
+  2. {\VBAR} B          .    .a {\VBAR}
+  3. {\VBAR} C         .b    .c {\VBAR}
+     {\BLC}\HLI{20}{\BRC}
+{\smallskip}
+. clear
+\end{stlog}
+
+
+\subsection{Using \lstinline{st_Matrix}} \label{st_Matrix_example}
+
+\begin{stlog}
+{\smallskip}
+. clear
+{\smallskip}
+. sysuse auto
+(1978 Automobile Data)
+{\smallskip}
+. mkmat mpg rep78 headroom in 1/5, matrix(m)
+{\smallskip}
+. matrix list m
+{\smallskip}
+m[5,3]
+         mpg     rep78  headroom
+r1        22         3       2.5
+r2        17         3         3
+r3        22         .         3
+r4        20         3       4.5
+r5        15         4         4
+{\smallskip}
+. python
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. m = st_Matrix("m")
+{\smallskip}
+. m.nRows
+5
+{\smallskip}
+. m.rows
+(0, 1, 2, 3, 4)
+{\smallskip}
+. m.nCols
+3
+{\smallskip}
+. m
+{\smallskip}
+m[5,3]
+           c0         c1         c2
+r0         22          3        2.5
+r1         17          3          3
+r2         22          .          3
+r3         20          3        4.5
+r4         15          4          4
+{\smallskip}
+. m.toList()
+[[22.0, 3.0, 2.5], [17.0, 3.0, 3.0], [22.0, ., 3.0], [20.0, 3.0, 4.5], [15.0, 4
+> .0, 4.0]]
+\end{stlog}
+
+An instance of \lstinline{st_Matrix} is mostly just a view onto the values in Stata. If you want a static list of values, use the \texttt{toList()} method, which returns a list of lists (one sub-list for each row), or the \lstinline{get(}\textit{row,col}\lstinline{)} method, which returns a single entry.
+\smallskip
+
+The next parts of the example show the use of indexing to retrieve and set values in a sub-matrix. As with \lstinline{st_View}, an \lstinline{st_Matrix} instance is indexed by appending [\textit{rows}, \textit{cols}] to it, where \textit{rows} and \textit{cols} are either integers or an iterable of integers (tuple, list, etc.) or a slice (for more info on slices, see example \S\ref{st_View_example}). The \textit{cols} index is optional, but the separating comma is not optional, with or without \textit{cols}. And, as with \lstinline{st_View}, \textbf{indexing an instance of \lstinline{st_Matrix} always returns another instance of \lstinline{st_Matrix}}.
+\begin{stlog}
+{\smallskip}
+. m[0,0]
+{\smallskip}
+m[1,1]
+           c0
+r0         22
+{\smallskip}
+. m[2,1]
+{\smallskip}
+m[1,1]
+           c1
+r2          .
+{\smallskip}
+. m.get(2,1)
+.
+{\smallskip}
+. type(m.get(2,1))
+<class 'stata_missing.MissingValue'>
+{\smallskip}
+. from stata_missing import MISSING_VALS as mvs
+{\smallskip}
+. m[ (0,4), (0, 2) ]
+{\smallskip}
+m[2,2]
+           c0         c2
+r0         22        2.5
+r4         15          4
+{\smallskip}
+. mvs[1]
+.a
+{\smallskip}
+. m[ (0,4), (0, 2) ] = mvs[1]
+{\color{red}Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "stata.py", line 796, in __setitem__
+    raise ValueError("length of value does not match number of rows")
+ValueError: length of value does not match number of rows}
+{\smallskip}
+. [ [ mvs[1] ]*2 ]*2
+[[.a, .a], [.a, .a]]
+{\smallskip}
+. m[ (0,4), (0, 2) ] = [ [ mvs[1] ]*2 ]*2
+{\smallskip}
+. m
+{\smallskip}
+m[5,3]
+           c0         c1         c2
+r0         .a          3         .a
+r1         17          3          3
+r2         22          .          3
+r3         20          3        4.5
+r4         .a          4         .a
+{\smallskip}
+. m[ (1,3), (0, 2) ] = [ [ 10101 ]*2 ]*2
+{\smallskip}
+. m
+{\smallskip}
+m[5,3]
+           c0         c1         c2
+r0         .a          3         .a
+r1      10101          3      10101
+r2         22          .          3
+r3      10101          3      10101
+r4         .a          4         .a
+{\smallskip}
+. m[ :, 1 ] = [ [ 0.5 ] ]*5
+{\smallskip}
+. m
+{\smallskip}
+m[5,3]
+           c0         c1         c2
+r0         .a         .5         .a
+r1      10101         .5      10101
+r2         22         .5          3
+r3      10101         .5      10101
+r4         .a         .5         .a
+{\smallskip}
+. exit()
+\HLI{79}
+{\smallskip}
+. matrix list m
+{\smallskip}
+m[5,3]
+         mpg     rep78  headroom
+r1        .a        .5        .a
+r2     10101        .5     10101
+r3        22        .5         3
+r4     10101        .5     10101
+r5        .a        .5        .a
+{\smallskip}
+\end{stlog}
+
+
+
+\subsection{\lstinline$st_Matrix$ and \lstinline$st_View$ don't automatically update after changes in Stata}
+
+\begin{stlog}
+{\smallskip}
+. clear
+{\smallskip}
+. sysuse auto
+(1978 Automobile Data)
+{\smallskip}
+. mkmat mpg rep head in 1/5, matrix(m)
+{\smallskip}
+. matrix list m
+{\smallskip}
+m[5,3]
+         mpg     rep78  headroom
+r1        22         3       2.5
+r2        17         3         3
+r3        22         .         3
+r4        20         3       4.5
+r5        15         4         4
+{\smallskip}
+. python
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. m = st_Matrix("m")
+{\smallskip}
+. m
+{\smallskip}
+m[5,3]
+           c0         c1         c2
+r0         22          3        2.5
+r1         17          3          3
+r2         22          .          3
+r3         20          3        4.5
+r4         15          4          4
+{\smallskip}
+. exit()
+\HLI{79}
+{\smallskip}
+. mkmat mpg -weight in 1/5, matrix(m)
+{\smallskip}
+. matrix list m
+{\smallskip}
+m[5,5]
+         mpg     rep78  headroom     trunk    weight
+r1        22         3       2.5        11      2930
+r2        17         3         3        11      3350
+r3        22         .         3        12      2640
+r4        20         3       4.5        16      3250
+r5        15         4         4        20      4080
+{\smallskip}
+. python
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. m
+{\smallskip}
+m[5,3]
+           c0         c1         c2
+r0         22          3        2.5
+r1         17          3          3
+r2         22          .          3
+r3         20          3        4.5
+r4         15          4          4
+{\smallskip}
+. exit()
+\HLI{79}
+{\smallskip}
+. mkmat mpg in 1/5, matrix(m)
+{\smallskip}
+. matrix list m
+{\smallskip}
+m[5,1]
+    mpg
+r1   22
+r2   17
+r3   22
+r4   20
+r5   15
+{\smallskip}
+. python
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. m
+{\color{red}Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "stata.py", line 648, in __repr__
+    return header + "\\n" + colTop + "\\n" + "\\n".join(rowGen)
+  File "stata.py", line 646, in <genexpr>
+    for r in rowNums)
+  File "stata.py", line 645, in <genexpr>
+    " ".join(st_format(fmt, st_matrix_el(matname, r, c)) for c in colNums)
+IndexError: matrix col number out of range}
+{\smallskip}
+. exit()
+\end{stlog}
+
+The error comes from the Python object \texttt{m} thinking there are 4 columns and trying the access the values in them.
+
+
+
+\subsection{\lstinline$st_Matrix$ and \lstinline$st_View$ are iterable} \label{iterable}
+
+Instances of \lstinline{st_Matrix} are iterable over rows and instances of \lstinline{st_View} are iterable over observations. What this means, in particular, is that they are easy to traverse in \lstinline{for} loops. The object returned with each iteration is a tuple of the values in the row or observation.
+
+\begin{stlog}
+{\smallskip}
+. clear
+{\smallskip}
+. sysuse auto
+(1978 Automobile Data)
+{\smallskip}
+. mkmat price-head in 2/8, matrix(m)
+{\smallskip}
+. python
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. m = st_Matrix("m")
+{\smallskip}
+. import collections
+{\smallskip}
+. isinstance(m, collections.Iterable)
+True
+{\smallskip}
+. for row in m: print(row)
+(4749.0, 17.0, 3.0, 3.0)
+(3799.0, 22.0, ., 3.0)
+(4816.0, 20.0, 3.0, 4.5)
+(7827.0, 15.0, 4.0, 4.0)
+(5788.0, 18.0, 3.0, 4.0)
+(4453.0, 26.0, ., 3.0)
+(5189.0, 20.0, 3.0, 2.0)
+{\smallskip}
+. for row in m[::2, (0, 0, 1, 1, 2, 2)]: print(row)
+(4749.0, 4749.0, 17.0, 17.0, 3.0, 3.0)
+(4816.0, 4816.0, 20.0, 20.0, 3.0, 3.0)
+(5788.0, 5788.0, 18.0, 18.0, 3.0, 3.0)
+(5189.0, 5189.0, 20.0, 20.0, 3.0, 3.0)
+{\smallskip}
+. v = st_View()
+{\smallskip}
+. isinstance(v, collections.Iterable)
+True
+{\smallskip}
+. for row in v[::8, :5]: print(row)
+('AMC Concord', 4099.0, 22.0, 3.0, 2.5)
+('Buick Riviera', 10372.0, 16.0, 3.0, 3.5)
+('Chev. Monte Carlo', 5104.0, 22.0, 2.0, 2.0)
+('Ford Mustang', 4187.0, 21.0, 3.0, 2.0)
+('Merc. XR-7', 6303.0, 14.0, 4.0, 3.0)
+('Olds Toronado', 10371.0, 16.0, 3.0, 3.5)
+('Pont. Grand Prix', 5222.0, 19.0, 3.0, 2.0)
+('Datsun 210', 4589.0, 35.0, 5.0, 2.0)
+('Renault Le Car', 3895.0, 26.0, 3.0, 3.0)
+('VW Scirocco', 6850.0, 25.0, 4.0, 2.0)
+{\smallskip}
+. for row in v[::8, :3]: print("{\lbr}0:>18{\rbr} {\lbr}1:>8{\rbr} {\lbr}2:>5{\rbr}".format(*row))
+       AMC Concord   4099.0  22.0
+     Buick Riviera  10372.0  16.0
+ Chev. Monte Carlo   5104.0  22.0
+      Ford Mustang   4187.0  21.0
+        Merc. XR-7   6303.0  14.0
+     Olds Toronado  10371.0  16.0
+  Pont. Grand Prix   5222.0  19.0
+        Datsun 210   4589.0  35.0
+    Renault Le Car   3895.0  26.0
+       VW Scirocco   6850.0  25.0
+{\smallskip}
+. exit()
+\HLI{79}
+\end{stlog}
+
+
+
+\subsection{Using Python files} \label{fileexample}
+
+To run a Python script, just use the \lstinline{python} command with the \lstinline{file} option (or call the plugin directly, see \S\ref{using_plugin}). For example, suppose you have a Python file called \lstinline$pyfile.py$ and its contents are \newline
+
+\hrule
+{\small
+\begin{lstlisting}
+nvars = int(st_local("_pynvars"))
+vars = [st_local("_pyvar" + str(i)) for i in range(nvars)]
+print("\nselected vars are\n\t{}\n".format(vars))
+    
+nargs = int(st_local("_pynargs"))
+args = [st_local("_pyarg" + str(i)) for i in range(nargs)]
+print("arguments are\n\t{}\n".format(args))
+
+firstRow = [_st_sdata(0, i) 
+            if st_isstrvar(i) else _st_data(0, i) 
+            for i in range(st_nvar())]
+print("first row of data is\n\t{}\n\n".format(firstRow))
+\end{lstlisting}}
+\hrule
+\vspace{3mm}
+
+\noindent You can run the file like so:
+
+\begin{stlog}
+{\smallskip}
+. clear
+{\smallskip}
+. sysuse auto
+(1978 Automobile Data)
+{\smallskip}
+. python mpg trunk weight gear, file(pyfile.py) args(plus "o t h e r" options)
+{\smallskip}
+{\smallskip}
+selected vars are
+        ['mpg', 'trunk', 'weight', 'gear_ratio']
+{\smallskip}
+{\smallskip}
+arguments are
+        ['plus', 'o t h e r', 'options']
+{\smallskip}
+{\smallskip}
+first row of data is
+        ['AMC Concord', 4099.0, 22.0, 3.0, 2.5, 11.0, 2930.0, 186.0, 40.0, 121.
+> 0, 3.5799999237060547, 0.0]
+{\smallskip}
+{\smallskip}
+\end{stlog}
+
+\vspace{3mm}
+To use Python files in an Ado command, just use the \lstinline{python} command or plugin call within the Ado file. If calling the plugin directly, consider the recommendations in \S\ref{using_plugin}. Here is an example for a command called \lstinline{prem}, for \textbf{p}rint \textbf{r}egular \textbf{e}xpression \textbf{m}atch. The command uses Python's regular expression module \lstinline{re} to find pattern matches in a Stata string variable. The command uses an Ado file called \lstinline{prem.ado}, which sonsists of\newline
+
+\hrule
+{\small
+\begin{lstlisting}
+program prem
+  version 12.1
+  syntax varlist(string min=1 max=1) [if] [in] , regex(string)
+  
+  // Put all varnames of varlist in locals.
+  // Used to create lookups name <-> index.
+  ereturn clear // to clear hidden variables
+  local _pynallvars = 0
+  if (c(k) > 0) {
+    foreach var of varlist * {
+      local _pyallvars`_pynallvars' = "`var'"
+      local _pynallvars = `_pynallvars' + 1
+    }
+  }
+  
+  plugin call python_plugin * `if' `in', prem.py
+end
+
+program python_plugin, plugin
+\end{lstlisting}}
+\hrule
+\vspace{3mm}
+
+\noindent and a Python file \lstinline{prem.py}, which consists of\newline
+
+\hrule
+{\small
+\begin{lstlisting}
+import re
+
+varNum = st_varindex(st_local("varlist"), True)
+reComp = re.compile(st_local("regex"))
+
+for i in range(st_in1(), st_in2()):
+    if st_ifobs(i):
+        obs = _st_sdata(i, varNum)
+        m = reComp.search(obs)
+        if m: 
+            beg, end = m.start(), m.end()
+            s1, s2, s3 = obs[:beg], obs[beg:end], obs[end:]
+            print(s1 + "{ul on}" + s2 + "{ul off}" + s3)
+\end{lstlisting}}
+\hrule
+\vspace{3mm}
+
+The Ado file should be in Stata's \lstinline{adopath} and the Python file should be in the Python path. Then the command can be used like so:
+
+\begin{stlog}
+{\smallskip}
+. clear
+{\smallskip}
+. sysuse auto
+(1978 Automobile Data)
+{\smallskip}
+. prem make , regex("((.)\\2+)")
+Cad. Devi{\underbar{ll}}e
+Cad. Sevi{\underbar{ll}}e
+Chev. Cheve{\underbar{tt}}e
+Linc. Versai{\underbar{ll}}es
+Olds Cutla{\underbar{ss}}
+Olds Delta {\underbar{88}}
+Plym. A{\underbar{rr}}ow
+Plym. Sa{\underbar{pp}}oro
+Audi 5{\underbar{000}}
+Datsun 2{\underbar{00}}
+Honda A{\underbar{cc}}ord
+Toyota Coro{\underbar{ll}}a
+VW Ra{\underbar{bb}}it
+VW Sciro{\underbar{cc}}o
+{\smallskip}
+. prem make if foreign, regex("((.)\\2+)")
+Audi 5{\underbar{000}}
+Datsun 2{\underbar{00}}
+Honda A{\underbar{cc}}ord
+Toyota Coro{\underbar{ll}}a
+VW Ra{\underbar{bb}}it
+VW Sciro{\underbar{cc}}o
+\end{stlog}
+
+
+
+\subsection{The result of \lstinline$exit()$ is hard-coded}
+
+In Python, the label \lstinline$exit$ can be reassigned. If that is done in a typical interactive session, \lstinline$exit()$ will no longer exit the interpreter (depending, of course, on how \lstinline$exit$ was reassigned). In this interactive interpreter, the behavior of \lstinline$exit()$ is hard-coded to cause an exit.
+
+\begin{stlog}
+{\smallskip}
+. python
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. exit = "blah"
+{\smallskip}
+. exit()
+\HLI{79}
+{\smallskip}
+. python
+\HLI{49} python (type {\bftt{exit()}} to exit) 
+. def exit(): return "will it exit?"
+{\smallskip}
+. exit()
+\HLI{79}
+\end{stlog}
+
+		
+\end{document}
