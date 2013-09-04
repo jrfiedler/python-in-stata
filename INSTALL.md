@@ -77,4 +77,4 @@ gcc -bundle -DSYSTEM=APPLEMAC stplugin.c
 	
 Add to that compiler and linker flags for Python, which can be obtained as in http://docs.python.org/3.3/extending/embedding.html#compiling-and-linking-under-unix-like-systems.
 
-After compiling, python_plugin.plugin and python.ado need to be put in Stata's ado path and stata.py and stata_missing.py need to be put in the Python path. Alternately, any or all of these files can be in the directory from which the ``python'' command is first invoked, because that directory should be in both the ado path and Python path.
+After compiling, python_plugin.plugin and python.ado need to be put in Stata's ado path and stata.py and stata_missing.py need to be put in the Python path. Alternately, any or all of these files can be in the directory from which the ``python`` command is first invoked, because that directory should be in both the ado path and Python path.
