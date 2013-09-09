@@ -642,8 +642,9 @@ class TestSmallFuncs(unittest.TestCase):
                    'weight', 'length', 'turn', 'displacement', 'gear_ratio', 
                    'foreign']
         self.assertEqual(names, [st_varname(i) for i in range(st_nvar())])
-        
-    def tearDown(self):        
+      
+    @classmethod
+    def tearDownClass(cls):        
         st_local("localB", "the local B")
         st_local("localC", "the local C")
         
