@@ -2,11 +2,11 @@
 __version__ = "0.1.0"
 
 class MissingValue():
-    def __init__(self, missType):
+    def __init__(self, index):
         self.value = float.fromhex('0x1.0' + 
-                                   hex(missType)[2:].zfill(2) + 'p+1023')
-        self.name = "." if missType == 0 else "." + chr(missType + 96)
-        self.missType = missType
+                                   hex(index)[2:].zfill(2) + 'p+1023')
+        self.name = "." if index == 0 else "." + chr(index + 96)
+        self.index = index
             
     def __abs__(self):
         return self
@@ -21,30 +21,30 @@ class MissingValue():
         return MISSING, MISSING
         
     def __eq__(self, other):
-        otherVal = other.value if isinstance(other, MissingValue) else other
-        return self.value == otherVal
+        other_val = other.value if isinstance(other, MissingValue) else other
+        return self.value == other_val
         
     def __floordiv__(self, other):
         return MISSING
         
     def __ge__(self, other):
-        otherVal = other.value if isinstance(other, MissingValue) else other
-        return self.value >= otherVal
+        other_val = other.value if isinstance(other, MissingValue) else other
+        return self.value >= other_val
         
     def __gt__(self, other):
-        otherVal = other.value if isinstance(other, MissingValue) else other
-        return self.value > otherVal
+        other_val = other.value if isinstance(other, MissingValue) else other
+        return self.value > other_val
         
     def __hash__(self):
         return self.value.__hash__()
         
     def __le__(self, other):
-        otherVal = other.value if isinstance(other, MissingValue) else other
-        return self.value <= otherVal
+        other_val = other.value if isinstance(other, MissingValue) else other
+        return self.value <= other_val
         
     def __lt__(self, other):
-        otherVal = other.value if isinstance(other, MissingValue) else other
-        return self.value < otherVal
+        other_val = other.value if isinstance(other, MissingValue) else other
+        return self.value < other_val
         
     def __mod__(self, other):
         return MISSING
@@ -53,8 +53,8 @@ class MissingValue():
         return MISSING
         
     def __ne__(self, other):
-        otherVal = other.value if isinstance(other, MissingValue) else other
-        return self.value != otherVal
+        other_val = other.value if isinstance(other, MissingValue) else other
+        return self.value != other_val
         
     def __neg__(self):
         return MISSING

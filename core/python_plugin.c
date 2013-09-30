@@ -1199,7 +1199,9 @@ run_file(char *filename)
 	PyObject *obj ;
 
 	if (!file_exists(filename)) {
-		SF_error("file not found\n\n") ;
+		SF_error("file \"") ;
+		SF_error(filename) ;
+		SF_error("\" not found\n\n") ;
 		return 601 ;
 	}
 	
@@ -1211,7 +1213,9 @@ run_file(char *filename)
 	}
 	else {
 		PyErr_Clear() ;
-		SF_error("file could not be opened\n\n") ;
+		SF_error("file \"") ;
+		SF_error(filename) ;
+		SF_error("\" could not be opened\n\n") ;
 		return 603 ;
 	}
 	
@@ -1233,6 +1237,7 @@ run_interactive(int already_init)
 	main_module = PyImport_AddModule("__main__") ;
 	main_dict = PyModule_GetDict(main_module) ;
 	
+	SF_display("{cmd}>>>") ;
 	rc = SF_input(input, 999) ;
 	while (strcmp(input, "exit()") != 0) {
 		if (strcmp(input, "") != 0) {
@@ -1250,7 +1255,8 @@ run_interactive(int already_init)
 			/* extra blank line before next input */
 			SF_display("\n") ; 
 		}
-		rc = SF_input(input, 1000) ;
+		SF_display("{cmd}>>>") ;
+		rc = SF_input(input, 999) ;
 	}
 	SF_display("{txt}{hline}\n") ;
 }

@@ -664,6 +664,12 @@ class TestMatrix(unittest.TestCase):
         self.testOut = makeCapture(self)
         self.m = st_Matrix("matA")
         self.maxDiff = None
+        
+    def test_st_matrix(self):
+        self.assertRaises(TypeError, st_matrix, 12)  # matname should be str
+        self.assertRaises(ValueError, st_matrix, "not_a_matrix") # not a matrix name
+        self.assertTrue(isinstance(st_matrix("matA"), st_Matrix))
+        self.assertTrue(st_matrix("matA")._matname == "matA")
     
     def test___init__(self):
         self.assertRaises(ValueError, st_Matrix, 'noSuchMatrix')
@@ -1010,6 +1016,16 @@ class TestView(unittest.TestCase):
         self.testOut = makeCapture(self)
         self.v = st_View()
         self.maxDiff = None
+        
+    def test_st_view(self):
+        self.assertRaises(TypeError, st_view, "bad_row")
+        self.assertRaises(TypeError, st_view, (0, 1), "bad_row")
+        self.assertRaises(TypeError, st_view, ("bad1", "bad2"), 0)
+        self.assertRaises(TypeError, st_view, (0, 1), ("bad1", "bad2"))
+        self.assertRaises(IndexError, st_view, (0, 1, 7))
+        self.assertRaises(IndexError, st_view, (0, 1, -8))
+        self.assertRaises(IndexError, st_view, (0, 1), (0, 7))
+        self.assertRaises(IndexError, st_view, (0, 1), (0, -8))
         
     def test___init__(self):
         self.assertEqual(self.v._nRows, 74)
