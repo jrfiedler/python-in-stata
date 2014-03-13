@@ -1,1 +1,2 @@
-*.pdf
+core/__pycache__
+core/find_problems.py

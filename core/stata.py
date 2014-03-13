@@ -5,32 +5,36 @@ from math import ceil, log, floor
 
 from stata_missing import MissingValue, MISSING
 from stata_plugin import *
-from stata_plugin import (_st_data, _st_store, _st_sdata, _st_sstore,
-                          _st_display, _st_error)
+from stata_plugin import (
+    _st_data, _st_store, _st_sdata, _st_sstore, _st_display, _st_error
+)
+from stata_variable import StataVariable
 
 
 __version__ = "0.2.0"
+
 
 __all__ = [
     'st_cols', '_st_data', 'st_data', 'st_format', 'st_global', 
     'st_ifobs', 'st_in1', 'st_in2', 'st_isfmt', 'st_islmname', 
     'st_ismissing', 'st_isname', 'st_isnumfmt', 'st_isnumvar', 
     'st_isstrfmt', 'st_isstrvar', 'st_isvarname', 'st_local', 
-    'st_Matrix', 'st_matrix_el', 'st_nobs', 'st_numscalar', 'st_nvar', 
-    'st_rows', '_st_sdata', 'st_sdata', '_st_sstore', 'st_sstore', 
-    '_st_store', 'st_store', 'st_varindex', 'st_varname', 'st_View', 
-    'st_viewobs', 'st_viewvars'
-    ]
+    'st_matrix', 'st_matrix_el', 'st_nobs', 'st_numscalar', 
+    'st_nvar', 'st_rows', '_st_sdata', 'st_sdata', '_st_sstore', 
+    'st_sstore', '_st_store', 'st_store', 'st_varindex', 
+    'st_varname', 'st_view', 'st_viewobs', 'st_viewvars'
+]
 
 
 date_details = r'|'.join(
-    d for d in 
-        ('CC', 'cc', 'YY', 'yy', 'JJJ', 'jjj', 'Month', 'Mon', 'month', 
+    d for d in (
+        'CC', 'cc', 'YY', 'yy', 'JJJ', 'jjj', 'Month', 'Mon', 'month', 
         'mon', 'NN', 'nn', 'DD', 'dd', 'DAYNAME', 'Dayname', 'Day', 'Da',
         'day', 'da', 'q', 'WW', 'ww', 'HH', 'Hh', 'hH', 'hh', 'h', 'MM', 
         'mm', 'SS', 'ss', '.sss', '.ss', '.s', 'am', 'a.m.', 'AM', 'A.M.',
-        '\.', ',', ':', '-', '\\\\', '_', '\+', '/', '!.')
+        '\.', ',', ':', '-', '\\\\', '_', '\+', '/', '!.'
     )
+)
 TIME_FMT_RE = re.compile(r'^%(-)?t(c|C|d|w|m|q|h|y|g)(' + date_details + ')*$')
 TB_FMT_RE = re.compile(r'^%(-)?tb([^:]*)(:(' + date_details + ')*)?$')
 NUM_FMT_RE = re.compile(r'^%(-)?(0)?([0-9]+)(\.|\,)([0-9]+)(f|g|e)(c)?$')
@@ -332,7 +336,7 @@ class st_Variable():
         for i,v in zip(index, value):
             setter(i, col_num, v)
 
-
+        
 def st_view(rownums=None, colnums=None, selectvar=None):
     """return a view onto current Stata data"""
     nobs = st_nobs()
@@ -381,13 +385,14 @@ def st_view(rownums=None, colnums=None, selectvar=None):
             rownums = tuple(r for r in rownums
                 if not any(st_ismissing(_st_data(r, c)) for c in colnums))
         else:
-            rownums = tuple(r for r in rownums 
-                            if _st_data(r, selectvar) != 0)
+            rownums = tuple(
+                r for r in rownums if _st_data(r, selectvar) != 0
+            )
             
-    return st_View(rownums, colnums, selectvar)
+    return StataView(rownums, colnums)
 
             
-class st_View():
+class StataView():
     """Python class of views onto the Stata dataset in memory"""
     def __init__(self, rownums=None, colnums=None):
         if rownums is None :
@@ -408,19 +413,22 @@ class st_View():
         self._rownums = rownums
         self._colnums = colnums
         
-        self._formats = ["%11s" if st_isstrvar(c) else "%9.0g" 
-                         for c in colnums]
-        self._getters = [_st_sdata if st_isstrvar(c) else _st_data 
-                         for c in colnums]
-        self._setters = [_st_sstore if st_isstrvar(c) else _st_store 
-                         for c in colnums]
+        self._formats = [
+            "%11s" if st_isstrvar(c) else "%9.0g" for c in colnums
+        ]
+        self._getters = [
+            _st_sdata if st_isstrvar(c) else _st_data for c in colnums
+        ]
+        self._setters = [
+            _st_sstore if st_isstrvar(c) else _st_store for c in colnums
+        ]
                          
     def __iter__(self):
         """return iterable of obs"""
         getters, cols, rows = self._getters, self._colnums, self._rownums
         return (tuple(g(r, c) for g,c in zip(getters, cols)) for r in rows)
     
-    def __repr__(self):
+    def __str__(self):
         getters, colnums, rownums = self._getters, self._colnums, self._rownums
         nrows, nobs = self._nrows, self._nobs
         ncols, nvar = self._ncols, self._nvar
@@ -432,10 +440,12 @@ class st_View():
         nvar_str = str(nvar)
         ncol_str = "" if ncols == nvar else (" (" + str(ncols) + " columns)")
         
-        header = ("  {{txt}}" +
-                  "obs: {{:>{m}}}{{}}\n vars: {{:>{m}}}{{}}".format(
-                        m=max((len(nobs_str), len(nvar_str))))
-                  )
+        header = (
+            "  {{txt}}" +
+            "obs: {{:>{m}}}{{}}\n vars: {{:>{m}}}{{}}".format(
+                m=max((len(nobs_str), len(nvar_str)))
+            )
+        )
         header = header.format(nobs_str, nrow_str, nvar_str, ncol_str)
         
         if nrows == 0 or ncols == 0:
@@ -464,10 +474,14 @@ class st_View():
         for row, i in zip(rows, rownums):
             row.insert(0, row_fmt.format("r" + str(i)) + "{res}")
         
-        rows.insert(0, 
-                       [row_fmt.format("")] + 
-                       [col_fmt[i].format("c" + str(v))
-                                   for v,i in zip(colnums, range(ncols))])
+        rows.insert(
+            0, 
+            [row_fmt.format("")] + 
+            [
+                col_fmt[i].format("c" + str(v))
+                for v,i in zip(colnums, range(ncols))
+            ]
+        )
         
         return ("\n" + header + "\n\n" + 
                 "\n".join(" ".join(r for r in row) for row in rows))
@@ -491,7 +505,7 @@ class st_View():
         like Stata's -list- command
         
         """
-        print(self.__repr__())
+        print(self.__str__())
         
     def format(self, col, fmt):
         """set the display format for given column in view"""
@@ -527,7 +541,7 @@ class st_View():
                 
     def __eq__(self, other):
         """determine if self is equal to other"""
-        if not isinstance(other, st_View): return False
+        if not isinstance(other, StataView): return False
         
         if (not len(self._rownums) == len(other._rownums) or 
             not len(self._colnums) == len(other._colnums)):
@@ -537,11 +551,12 @@ class st_View():
         rows2, cols2 = other._rownums, other._colnums
         getters, ncols = self._getters, self._ncols
         return all(st_isstrvar(c1) == st_isstrvar(c2) and
-                   all(getters[i](r1, c1) == getters[i](r2, c2)
-                       for r1, r2 in zip(rows1, rows2)
-                       )
-                   for c1, c2, i in zip(cols1, cols2, range(ncols))
-                   )
+            all(
+                getters[i](r1, c1) == getters[i](r2, c2)
+                for r1, r2 in zip(rows1, rows2)
+            )
+            for c1, c2, i in zip(cols1, cols2, range(ncols))
+        )
         
     def _check_index(self, prior_index, next_index):
         """To be used with __init__, __getitem__, and __setitem__ .
@@ -572,7 +587,7 @@ class st_View():
         sel_rows = self._check_index(self._rownums, index[0])
         sel_cols = self._check_index(self._colnums, 
                                      index[1] if len(index) == 2 else None)
-        return st_View(rownums=sel_rows, colnums=sel_cols)
+        return StataView(rownums=sel_rows, colnums=sel_cols)
         
     def __setitem__(self, index, value):
         """change values if in 'sub-view' of view with given indices"""
@@ -593,7 +608,7 @@ class st_View():
                 return (x,)
             return tuple(x)
             
-        if isinstance(value, st_Matrix) or isinstance(value, st_View):
+        if isinstance(value, StataMatrix) or isinstance(value, StataView):
             value = value.to_list()
             # no need to go through tuple_maker here, so maybe rewrite
         
@@ -625,17 +640,102 @@ class st_View():
 
 
 def st_viewvars(view_obj):
-    """return column numbers from st_View object"""
-    if not isinstance(view_obj, st_View):
+    """return column numbers from StataView object"""
+    if not isinstance(view_obj, StataView):
         raise TypeError("argument should be a View")
     return view_obj._colnums
 
 
 def st_viewobs(view_obj):
-    """return row numbers from st_View object"""
-    if not isinstance(view_obj, st_View):
+    """return row numbers from StataView object"""
+    if not isinstance(view_obj, StataView):
         raise TypeError("argument should be a View")
     return view_obj._rownums
+
+
+def st_mirror():
+    return StataMirror()
+
+    
+class StataMirror(StataView):
+    def __init__(self):
+        pass
+        
+    @property
+    def _rownums(self):
+        return [i for i in range(st_nobs())]
+        
+    @property
+    def _colnums(self):
+        return [i for i in range(st_nvar())]
+        
+    @property
+    def _nrows(self):
+        return st_nobs()
+        
+    @property
+    def _ncols(self):
+        return st_nvar()
+        
+    @property
+    def _getters(self):
+        return [_st_sdata if st_isstrvar(i) else _st_data for i in st_nvar()]
+        
+    @property
+    def _setters(self):
+        return [_st_sstore if st_isstrvar(i) else _st_store for i in st_nvar()]
+
+    def __getattr__(self, name):
+        """Provides shortcut to Stata variables by appending "_".
+        Raises AttributeError if name does not end with "_".
+        Tries to find variable and return DtaVariable otherwise.
+        """
+        if not name.endswith("_"):
+            msg = "'{}' object has no attribute '{}'"
+            raise AttributeError(msg.format(self.__class__.__name__, name))
+            
+        varname = st_varname(st_varindex(name, True))
+        
+        return DtaVariable(self, varname)
+        
+    def __setattr__(self, name, value):
+        """Provides shortcut to Dta variables by appending "_".
+        Creates or replaces variable if name ends with "_".
+        Creates or replaces regular attribute otherwise.
+        """
+        if not name.endswith("_"):
+            self.__dict__[name] = value
+        else:
+            if not isinstance(value, collections.Iterable):
+                if st_nobs() > 1:
+                    raise TypeError("iterable required")
+                value = (value,)
+            elif len(value) != st_nobs():
+                msg = "need iterable of length {}, got length {}"
+                raise ValueError(msg.format(st_nobs(), len(value)))
+            col = st_varindex(name[:-1], True)
+            setter = _st_sstore if st_isstrvar(col) else _st_store
+            for i,v in enumerate(values):
+                setter(i, col, v)
+        
+    def __delattr__(self, name):
+        """Provides shortcut to Dta variables by appending "_".
+        Raises AttributeError if name does not end with "_".
+        Otherwise, tries to find variable and drop it.
+        """
+        if name.endswith("_"):
+            raise ValueError("cannot drop Stata variables from Python")
+        else:
+            if name not in self.__dict__:
+                msg = "'{}' object has no attribute '{}'"
+                raise AttributeError(msg.format(self.__class__.__name__, name))
+            del self.__dict__[name]
+
+    def index(self, varname):
+        return st_varindex(varname, True)
+        
+    def get(self, row, col):
+        return _st_sdata(row, col) if st_isstrvar(col) else _st_data(row, col)
 
 
 def st_matrix(matname):
@@ -649,10 +749,10 @@ def st_matrix(matname):
         # but typical Python thing would be to raise an error
         raise ValueError("cannot find a Stata matrix named " + matname)
     
-    return st_Matrix(matname)
+    return StataMatrix(matname)
 
-    
-class st_Matrix():
+
+class StataMatrix():
     """Python class of views onto Stata matrices"""
     def __init__(self, matname, rownums=None, colnums=None, fmt=None):
         nrows, ncols = st_rows(matname), st_cols(matname)
@@ -729,8 +829,8 @@ class st_Matrix():
         return st_matrix_el(self._matname, 
                             self._rownums[row], self._colnums[col])
         
-    def __repr__(self):
-        """string representation of st_Matrix object"""
+    def __str__(self):
+        """string representation of StataMatrix object"""
         matname, rownums, colnums = self._matname, self._rownums, self._colnums
         maxrow = max(rownums)
         fmt = self._fmt
@@ -773,7 +873,7 @@ class st_Matrix():
                 
     def __eq__(self, other):
         """determine if self is equal to other"""
-        if not isinstance(other, st_Matrix): return False
+        if not isinstance(other, StataMatrix): return False
         
         if (not len(self._rownums) == len(other._rownums) or 
             not len(self._colnums) == len(other._colnums)):
@@ -808,7 +908,7 @@ class st_Matrix():
         return final_index
     
     def __getitem__(self, index):
-        """return st_Matrix object containing rows and cols 
+        """return StataMatrix object containing rows and cols 
         specified by index tuple
         
         """
@@ -817,7 +917,7 @@ class st_Matrix():
         sel_rows = self._check_index(self._rownums, index[0])
         sel_cols = self._check_index(self._colnums, 
                                    index[1] if len(index) == 2 else None)
-        return st_Matrix(self._matname, 
+        return StataMatrix(self._matname, 
                          rownums=sel_rows, colnums=sel_cols, fmt=self._fmt)
         
     def __setitem__(self, index, value):
@@ -844,10 +944,10 @@ class st_Matrix():
                 return (x,)
             return tuple(x)
             
-        if isinstance(value, st_Matrix) or isinstance(value, st_View):
+        if isinstance(value, StataMatrix) or isinstance(value, StataView):
             value = value.to_list()
             # No need to go through tuple_maker here, so maybe rewrite.
-            # If rewriting around tuple_maker, st_View variables should be
+            # If rewriting around tuple_maker, StataView variables should be
             # checked to be sure they are numeric.
         
         # force input into 2d structure

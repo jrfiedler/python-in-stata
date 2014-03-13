@@ -922,7 +922,7 @@ st_varindex(PyObject *self, PyObject *args)
 	}
 	else {
 		PyErr_SetString(PyExc_TypeError, 
-			"st_numscalar() takes 1 argument for getting or 2 for setting") ;
+			"st_varindex() takes 1 or 2 arguments") ;
 		return NULL ;
 	}
 	
@@ -1223,7 +1223,7 @@ run_file(char *filename)
 }
 
 static void 
-run_interactive(int already_init)
+run_interactive(void)
 {
 	PyObject *main_module, *main_dict ;
 	PyObject *pyrun ;
@@ -1360,7 +1360,7 @@ stata_call(int argc, char *argv[])
 		rc = run_file(argv[0]) ;
 	}
 	else {
-		run_interactive(already_init) ;
+		run_interactive() ;
 	}
 
 	/* free memory in varnames_trie, since memory 
