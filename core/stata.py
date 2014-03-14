@@ -19,10 +19,11 @@ __all__ = [
     'st_ifobs', 'st_in1', 'st_in2', 'st_isfmt', 'st_islmname', 
     'st_ismissing', 'st_isname', 'st_isnumfmt', 'st_isnumvar', 
     'st_isstrfmt', 'st_isstrvar', 'st_isvarname', 'st_local', 
-    'st_matrix', 'st_matrix_el', 'st_nobs', 'st_numscalar', 
-    'st_nvar', 'st_rows', '_st_sdata', 'st_sdata', '_st_sstore', 
-    'st_sstore', '_st_store', 'st_store', 'st_varindex', 
-    'st_varname', 'st_view', 'st_viewobs', 'st_viewvars'
+    'st_matrix', 'st_matrix_el', 'st_mirror', 'st_nobs', 
+    'st_numscalar', 'st_nvar', 'st_rows', '_st_sdata', 
+    'st_sdata', '_st_sstore', 'st_sstore', '_st_store', 
+    'st_store', 'st_varindex', 'st_varname', 'st_view', 
+    'st_viewobs', 'st_viewvars'
 ]
 
 
@@ -496,7 +497,7 @@ class StataView():
         
     def get(self, row, col):
         """get single value from view"""
-        # use self.rownums[row] rather than row because self's rows
+        # use self._rownums[row] rather than row because self's rows
         # are not necessarily the same as Stata's observation numbers
         return self._getters[col](self._rownums[row], self._colnums[col])
         
@@ -663,11 +664,11 @@ class StataMirror(StataView):
         
     @property
     def _rownums(self):
-        return [i for i in range(st_nobs())]
+        return tuple(i for i in range(st_nobs()))
         
     @property
     def _colnums(self):
-        return [i for i in range(st_nvar())]
+        return tuple(i for i in range(st_nvar()))
         
     @property
     def _nrows(self):
@@ -679,27 +680,36 @@ class StataMirror(StataView):
         
     @property
     def _getters(self):
-        return [_st_sdata if st_isstrvar(i) else _st_data for i in st_nvar()]
+        return [
+            _st_sdata if st_isstrvar(i) else _st_data 
+            for i in range(st_nvar())
+        ]
         
     @property
     def _setters(self):
-        return [_st_sstore if st_isstrvar(i) else _st_store for i in st_nvar()]
+        return [
+            _st_sstore if st_isstrvar(i) else _st_store 
+            for i in range(st_nvar())
+        ]
+        
+    def __len__(self):
+        return st_nobs()
 
     def __getattr__(self, name):
         """Provides shortcut to Stata variables by appending "_".
         Raises AttributeError if name does not end with "_".
-        Tries to find variable and return DtaVariable otherwise.
+        Tries to find variable and return StataVariable otherwise.
         """
         if not name.endswith("_"):
             msg = "'{}' object has no attribute '{}'"
             raise AttributeError(msg.format(self.__class__.__name__, name))
             
-        varname = st_varname(st_varindex(name, True))
+        varname = st_varname(st_varindex(name[:-1], True))
         
-        return DtaVariable(self, varname)
+        return StataVariable(self, varname)
         
     def __setattr__(self, name, value):
-        """Provides shortcut to Dta variables by appending "_".
+        """Provides shortcut to Stata variables by appending "_".
         Creates or replaces variable if name ends with "_".
         Creates or replaces regular attribute otherwise.
         """
@@ -715,11 +725,11 @@ class StataMirror(StataView):
                 raise ValueError(msg.format(st_nobs(), len(value)))
             col = st_varindex(name[:-1], True)
             setter = _st_sstore if st_isstrvar(col) else _st_store
-            for i,v in enumerate(values):
+            for i,v in enumerate(value):
                 setter(i, col, v)
         
     def __delattr__(self, name):
-        """Provides shortcut to Dta variables by appending "_".
+        """Provides shortcut to Stata variables by appending "_".
         Raises AttributeError if name does not end with "_".
         Otherwise, tries to find variable and drop it.
         """

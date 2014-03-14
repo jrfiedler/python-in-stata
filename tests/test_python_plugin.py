@@ -4,6 +4,9 @@ import random
 from types import GeneratorType
 
 from stata_missing import MISSING_VALS as mvs
+from stata_variable import StataVariable, StataVarVals
+from stata import StataMatrix
+from stata_math import *
 
 
 def makeCapture(parent):
@@ -20,7 +23,7 @@ class TestSmallFuncs(unittest.TestCase):
         self.output = ""
         self.stdout = sys.stdout
         self.testOut = makeCapture(self)
-        self.data = st_View().to_list()
+        self.data = st_view().to_list()
         
     def test_st_cols(self): # not in mata
         self.assertRaises(TypeError, st_cols, 0) # argument needs to be str
@@ -659,25 +662,29 @@ class TestSmallFuncs(unittest.TestCase):
 
 class TestMatrix(unittest.TestCase):
     def setUp(self):
-        self.output = ""
         self.stdout = sys.stdout
         self.testOut = makeCapture(self)
-        self.m = st_Matrix("matA")
+        self.m = st_matrix("matA")
         self.maxDiff = None
+        self.output = ""
+        
+    def tearDown(self):
+        self.output = ""
+        sys.stdout = self.stdout
         
     def test_st_matrix(self):
         self.assertRaises(TypeError, st_matrix, 12)  # matname should be str
         self.assertRaises(ValueError, st_matrix, "not_a_matrix") # not a matrix name
         
-        self.assertTrue(isinstance(st_matrix("matA"), st_Matrix))
+        self.assertTrue(isinstance(st_matrix("matA"), StataMatrix))
         self.assertTrue(st_matrix("matA")._matname == "matA")
         
         self.assertEqual(self.m, st_matrix("matA"))
     
     def test___init__(self):
-        self.assertRaises(ValueError, st_Matrix, 'noSuchMatrix')
+        self.assertRaises(ValueError, st_matrix, 'noSuchMatrix')
     
-        m = st_Matrix('matA')
+        m = st_matrix('matA')
         self.assertEqual(m._nrows, 7)
         self.assertEqual(m._ncols, 4)
         self.assertEqual(m._matname, 'matA')
@@ -793,7 +800,7 @@ class TestMatrix(unittest.TestCase):
              
         self.assertEqual(self.m.to_list(), mList)
         
-    def test___repr__(self):
+    def test___str__(self):
         mRepr = ('\n' + 
                  '{txt}matA[7,4]\n' + 
                  '{txt}           c0         c1         c2         c3\n' + 
@@ -805,7 +812,7 @@ class TestMatrix(unittest.TestCase):
                  '{txt}r5{res}       4453         26          .          3\n' + 
                  '{txt}r6{res}       5189         20          3          2')
               
-        self.assertEqual(self.m.__repr__(), mRepr)
+        self.assertEqual(self.m.__str__(), mRepr)
         
     def test_get(self):
         self.assertRaises(TypeError, self.m.get, 1, "1") # both args must be int
@@ -854,9 +861,9 @@ class TestMatrix(unittest.TestCase):
     def test___eq__(self):
         self.assertFalse(self.m == self.m.to_list())
         
-        self.assertEqual(self.m, st_Matrix("matB"))
+        self.assertEqual(self.m, st_matrix("matB"))
         
-        m2 = st_Matrix("matB")
+        m2 = st_matrix("matB")
         
         m2[1,1] = mvs[-1]
         self.assertFalse(self.m == m2)
@@ -942,7 +949,7 @@ class TestMatrix(unittest.TestCase):
             [[st_matrix_el("matA", i, j) for j in (0,2)] for i in (0,2,4,6)])
         
         m2 = self.m[(0,2,4,1,3,5,1,3,5,0,2,4,6), (0,2,2,0,1,3,3,1)]
-        self.assertTrue(isinstance(m2, st_Matrix))
+        self.assertTrue(isinstance(m2, StataMatrix))
         self.assertEqual(m2[::2,::2][(0,3,5,2,1,4,6), (0,2,1,3)], self.m)
         
     def test___setitem__(self):
@@ -961,7 +968,7 @@ class TestMatrix(unittest.TestCase):
         self.assertRaises(ValueError, setItem, ((1,2,3),(1,2)), [2] ) # 2nd arg not right shape
         self.assertRaises(ValueError, setItem, ((1,2,3),(1,2)), [[2,2,2,2,2,2]] ) # 2nd arg not right shape
     
-        m2 = st_Matrix("matB")
+        m2 = st_matrix("matB")
         
         m2[::2, ::2] = [[None]*2]*4
         
@@ -1014,11 +1021,15 @@ class TestMatrix(unittest.TestCase):
 
 class TestView(unittest.TestCase):
     def setUp(self):
-        self.output = ""
         self.stdout = sys.stdout
         self.testOut = makeCapture(self)
-        self.v = st_view()
         self.maxDiff = None
+        self.v = st_view()
+        self.output = ""
+        
+    def tearDown(self):
+        self.output = ""
+        sys.stdout = self.stdout
         
     def test_st_view(self):
         self.assertRaises(TypeError, st_view, "bad_row")
@@ -1030,7 +1041,7 @@ class TestView(unittest.TestCase):
         self.assertRaises(IndexError, st_view, (0, 1), (0, 12))
         self.assertRaises(IndexError, st_view, (0, 1), (0, -13))
         
-        self.assertEqual(self.v, st_View())
+        self.assertEqual(self.v, st_view())
         self.assertEqual(self.v[::2, ], st_view(range(0,74,2)))
         self.assertEqual(self.v[:, ::2], st_view(None, range(0,12,2)))
         self.assertEqual(self.v[::2, ::2], st_view(range(0,74,2), range(0,12,2)))
@@ -1138,8 +1149,8 @@ class TestView(unittest.TestCase):
         self.assertEqual(self.v.get(1,1), 4749.0)
         self.assertTrue(abs(self.v.get(-1,-2) - 2.98) < 1e-6)
         
-    def test___repr__(self):
-        self.assertEqual(self.v[::6, ::4].__repr__(),
+    def test___str__(self):
+        self.assertEqual(self.v[::6, ::4].__str__(),
             '\n' + 
             '  {txt}obs: 13\n' + 
             ' vars:  3\n\n' +
@@ -1158,7 +1169,7 @@ class TestView(unittest.TestCase):
             '{txt}r66{res} Toyota Celi       2.5        36\n' + 
             '{txt}r72{res} VW Scirocco         2        36')
             
-        self.assertEqual(self.v[(0,1,2,0,1,2), (0,1,2,0,1,2)].__repr__(),
+        self.assertEqual(self.v[(0,1,2,0,1,2), (0,1,2,0,1,2)].__str__(),
             '\n' + 
             '  {txt}obs: 3 (6 rows)\n' + 
             ' vars: 3 (6 columns)\n\n' + 
@@ -1180,7 +1191,10 @@ class TestView(unittest.TestCase):
         self.assertRaises(TypeError, check_index, range(10), slice("blah", 8, 2)) # str in slice raises error
         
         self.assertEqual(check_index(range(44), None), range(44))
-        self.assertEqual(check_index(range(44), (i for i in range(0,40,2))), tuple(i for i in range(0,40,2)))
+        self.assertEqual(
+            check_index(range(44), (i for i in range(0,40,2))),
+            tuple(i for i in range(0,40,2))
+        )
         self.assertEqual(check_index(range(44), (1,2,10,20)), (1,2,10,20))
         self.assertEqual(check_index(range(44), 14), (14,))
         self.assertEqual(check_index(range(44), -3), (41,))
@@ -1217,7 +1231,8 @@ class TestView(unittest.TestCase):
             [['AMC Pacer', 4749.0, 17.0, 3.0, 3.0, 11.0, 3350.0, 
               173.0, 40.0, 258.0, 2.5299999713897705, 0.0]])
               
-        self.assertEqual(self.v[(0,6,12,18,24,30,36,42,48,54,60,66,72),(0,4,8)].to_list(), 
+        self.assertEqual(
+            self.v[(0,6,12,18,24,30,36,42,48,54,60,66,72),(0,4,8)].to_list(), 
             [['AMC Concord', 2.5, 40.0], 
              ['Buick Opel', 3.0, 34.0], 
              ['Cad. Seville', 3.0, 45.0], 
@@ -1230,9 +1245,11 @@ class TestView(unittest.TestCase):
              ['BMW 320i', 2.5, 34.0], 
              ['Honda Accord', 3.0, 36.0], 
              ['Toyota Celica', 2.5, 36.0], 
-             ['VW Scirocco', 2.0, 36.0]])
+             ['VW Scirocco', 2.0, 36.0]]
+        )
               
-        self.assertEqual(self.v[(0,6,12,18,24,30,36,-32,-26,-20,-14,-8,-2),(0,-8,-4)].to_list(), 
+        self.assertEqual(
+            self.v[(0,6,12,18,24,30,36,-32,-26,-20,-14,-8,-2),(0,-8,-4)].to_list(), 
             [['AMC Concord', 2.5, 40.0], 
              ['Buick Opel', 3.0, 34.0], 
              ['Cad. Seville', 3.0, 45.0], 
@@ -1245,14 +1262,17 @@ class TestView(unittest.TestCase):
              ['BMW 320i', 2.5, 34.0], 
              ['Honda Accord', 3.0, 36.0], 
              ['Toyota Celica', 2.5, 36.0], 
-             ['VW Scirocco', 2.0, 36.0]])
+             ['VW Scirocco', 2.0, 36.0]]
+        )
               
-        self.assertEqual(self.v[(0,0,0,0,0),(0,0)].to_list(), 
+        self.assertEqual(
+            self.v[(0,0,0,0,0),(0,0)].to_list(), 
             [['AMC Concord', 'AMC Concord'], 
              ['AMC Concord', 'AMC Concord'], 
              ['AMC Concord', 'AMC Concord'], 
              ['AMC Concord', 'AMC Concord'], 
-             ['AMC Concord', 'AMC Concord']])
+             ['AMC Concord', 'AMC Concord']]
+        )
     
     def test___setitem__(self):
         setitem = self.v.__setitem__
@@ -1442,7 +1462,7 @@ class TestView(unittest.TestCase):
         self.assertEqual(self.v.to_list(), varCopy) # check that values restored
         
     def test_st_viewobs(self):
-        self.assertRaises(TypeError, st_viewobs, st_Matrix("matA")) # arg needs to be st_View instance
+        self.assertRaises(TypeError, st_viewobs, st_matrix("matA")) # arg needs to be st_view instance
         self.assertRaises(TypeError, st_viewobs, self.v, 0) # too many args
         self.assertRaises(TypeError, st_viewobs) # too few args
     
@@ -1450,13 +1470,495 @@ class TestView(unittest.TestCase):
         self.assertEqual(st_viewobs(self.v[::6,]), tuple(range(0,74,6)))
         
     def test_st_viewvars(self):
-        self.assertRaises(TypeError, st_viewvars, st_Matrix("matA")) # arg needs to be st_View instance
+        self.assertRaises(TypeError, st_viewvars, st_matrix("matA")) # arg needs to be st_view instance
         self.assertRaises(TypeError, st_viewvars, self.v, 0) # too many args
         self.assertRaises(TypeError, st_viewvars) # too few args
     
         self.assertEqual(st_viewvars(self.v), tuple(range(12)))
         self.assertEqual(st_viewvars(self.v[::4,::4]), (0,4,8))
 
+
+class TestMirror(unittest.TestCase):
+    def setUp(self):
+        self.stdout = sys.stdout
+        self.testOut = makeCapture(self)
+        self.maxDiff = None
+        self.m = st_mirror()
+        self.output = ""
+        
+    def tearDown(self):
+        self.output = ""
+        sys.stdout = self.stdout
+        
+    def test___setattr__(self):
+        self.assertRaises(
+            ValueError, self.m.__setattr__, "nosuchvar_", range(74)
+        )
+        
+        oldmake = self.m.make_[:]
+        oldmpg = self.m.mpg_[:]
+        
+        self.m.make_ = [str(i) for i in range(74)]
+        self.m.mpg_ = range(74)
+        
+        self.assertEqual(self.m[:, 0].to_list(), [[str(i)] for i in range(74)])
+        self.assertEqual(self.m[:, 2].to_list(), [[i] for i in range(74)])
+        
+        self.m.make_ = oldmake
+        self.m.mpg_ = oldmpg
+        
+        self.assertEqual([x[0] for x in self.m[:, 0].to_list()], oldmake)
+        self.assertEqual([x[0] for x in self.m[:, 2].to_list()], oldmpg)
+    
+    def test___getattr__(self):
+        self.assertRaises(AttributeError, self.m.__getattr__, "blah")
+        
+        self.m.blah = "blah"
+        self.assertEqual(self.m.blah, "blah")  # uses __getattr__
+        del self.m.blah
+        
+        self.assertTrue(isinstance(self.m.make_, StataVariable))
+    
+    def test___delattr__(self):
+        self.m.blah = "blah"
+        
+        del self.m.blah
+        
+        self.assertRaises(ValueError, self.m.__delattr__, "make_")
+    
+    def test_StataVariable(self):
+        # testing that StataVariable behaves as expected 
+        # when produced from a StataMirror
+        mpg = self.m.mpg_
+        
+        backup = mpg[2:20:2]
+        
+        self.assertTrue(isinstance(self.m.mpg_, StataVariable))
+        
+        mpg[2:20:2] = range(9)
+        self.assertEqual(mpg[2:20:2], list(range(9)))
+        
+        mpg[2:20:2] = backup
+        self.assertEqual(mpg[2:20:2], [22, 15, 26, 16, 14, 21, 16, 22, 19])
+        
+        self.assertEqual(len(mpg), st_nobs())
+        
+        backup = mpg[:]
+        
+        mpg += 5
+        self.assertEqual(mpg[:], [b + 5 for b in backup])
+        
+        mpg = self.m.length_ + self.m.weight_
+        self.assertEqual(
+            list(mpg.values),
+            (self.m.length_ + self.m.weight_).values
+        )
+        
+        self.m.mpg_ = backup
+        
+    def test___iter__(self):
+        m = self.m
+        it = iter(m)
+        self.assertTrue(isinstance(it, GeneratorType))
+        self.assertEqual(
+            list(it), 
+            [tuple(m[i,:].to_list()[0]) for i in range(m._nrows)]
+        )
+        
+        it = iter(self.m[::2, ::2])
+        self.assertTrue(isinstance(it, GeneratorType))
+        self.assertEqual(
+            list(it), 
+            [tuple(m[i,::2].to_list()[0]) for i in range(0, m._nrows, 2)]
+        )
+        
+    def test_format(self):
+        self.assertRaises(TypeError, self.m.format, 1) # too few args
+        self.assertRaises(TypeError, self.m.format, 1, "%8.2f", 0) # too many args
+        self.assertRaises(TypeError, self.m.format, 1, 8.2) # fmt should be str
+        self.assertRaises(TypeError, self.m.format, (1,2), "8.2f") # column arg should be int or str
+        self.assertRaises(ValueError, self.m.format, 1, "%8.8f") # not a valid format
+        self.assertRaises(ValueError, self.m.format, 1, "%8s") # string fmt for non-string column
+        self.assertRaises(ValueError, self.m.format, 0, "%8.2f") # non-string fmt for string column
+        
+    def test_list(self):
+        pass
+        
+    def test_to_list(self):
+        self.assertEqual(
+            self.m[::6,::4].to_list(), 
+            [['AMC Concord', 2.5, 40.0], 
+             ['Buick Opel', 3.0, 34.0], 
+             ['Cad. Seville', 3.0, 45.0], 
+             ['Chev. Nova', 3.5, 43.0], 
+             ['Ford Mustang', 2.0, 43.0], 
+             ['Merc. Marquis', 3.5, 44.0], 
+             ['Olds Cutlass', 4.5, 42.0], 
+             ['Plym. Champ', 2.5, 37.0], 
+             ['Pont. Grand Prix', 2.0, 45.0], 
+             ['BMW 320i', 2.5, 34.0], 
+             ['Honda Accord', 3.0, 36.0], 
+             ['Toyota Celica', 2.5, 36.0], 
+             ['VW Scirocco', 2.0, 36.0]]
+        )
+             
+        self.assertEqual(
+            self.m[1,].to_list(),
+            [['AMC Pacer', 4749.0, 17.0, 3.0, 3.0, 11.0, 3350.0, 
+              173.0, 40.0, 258.0, 2.5299999713897705, 0.0]]
+        )
+        
+    def test_get(self):
+        self.assertRaises(TypeError, self.m.get, 0) # too few args
+        self.assertRaises(TypeError, self.m.get, 0, 0, 0) # too many args
+        self.assertRaises(ValueError, self.m.get, 0, "0") # st_isstrvar tries to find variable called "0"
+        self.assertRaises(TypeError, self.m.get, "0", 0) # args must be int
+        self.assertRaises(TypeError, self.m.get, 0, 0.5) # args must be int
+        self.assertRaises(IndexError, self.m.get, 0, 12) # 2nd arg out of range
+        self.assertRaises(IndexError, self.m.get, 0, -13) # 2nd arg out of range
+        self.assertRaises(IndexError, self.m.get, 74, 0) # 1st arg out of range
+        self.assertRaises(IndexError, self.m.get, -75, 0) # 1st arg out of range
+        
+        self.assertEqual(self.m.get(0,0), "AMC Concord")
+        self.assertEqual(self.m.get(1,1), 4749.0)
+        self.assertTrue(abs(self.m.get(-1,-2) - 2.98) < 1e-6)
+        
+    def test___str__(self):
+        self.assertEqual(
+            self.m[::6, ::4].__str__(),
+            '\n' + 
+            '  {txt}obs: 13\n' + 
+            ' vars:  3\n\n' +
+            '{txt}             c0        c4        c8\n' + 
+            '{txt} r0{res} AMC Concord       2.5        40\n' + 
+            '{txt} r6{res}  Buick Opel         3        34\n' + 
+            '{txt}r12{res} Cad. Sevill         3        45\n' + 
+            '{txt}r18{res}  Chev. Nova       3.5        43\n' + 
+            '{txt}r24{res} Ford Mustan         2        43\n' + 
+            '{txt}r30{res} Merc. Marqu       3.5        44\n' + 
+            '{txt}r36{res} Olds Cutlas       4.5        42\n' + 
+            '{txt}r42{res} Plym. Champ       2.5        37\n' + 
+            '{txt}r48{res} Pont. Grand         2        45\n' + 
+            '{txt}r54{res}    BMW 320i       2.5        34\n' + 
+            '{txt}r60{res} Honda Accor         3        36\n' + 
+            '{txt}r66{res} Toyota Celi       2.5        36\n' + 
+            '{txt}r72{res} VW Scirocco         2        36'
+        )
+            
+        self.assertEqual(
+            self.m[(0,1,2,0,1,2), (0,1,2,0,1,2)].__str__(),
+            '\n' + 
+            '  {txt}obs: 3 (6 rows)\n' + 
+            ' vars: 3 (6 columns)\n\n' + 
+            '{txt}            c0        c1        c2          c0        c1        c2\n' + 
+            '{txt}r0{res} AMC Concord      4099        22 AMC Concord      4099        22\n' + 
+            '{txt}r1{res}   AMC Pacer      4749        17   AMC Pacer      4749        17\n' + 
+            '{txt}r2{res}  AMC Spirit      3799        22  AMC Spirit      3799        22\n' + 
+            '{txt}r0{res} AMC Concord      4099        22 AMC Concord      4099        22\n' + 
+            '{txt}r1{res}   AMC Pacer      4749        17   AMC Pacer      4749        17\n' + 
+            '{txt}r2{res}  AMC Spirit      3799        22  AMC Spirit      3799        22'
+        )
+       
+    def test__check_index(self):
+        check_index = self.m._check_index
+        self.assertRaises(TypeError, check_index, range(4), "a") # last arg should be slice, int, or iterable of int
+        self.assertRaises(TypeError, check_index, range(4), 1.1) # last arg should be slice, int, or iterable of int
+        self.assertRaises(TypeError, check_index, range(4), (1, 2.1, 3.0)) # last arg should be slice, int, or iterable of int
+        self.assertRaises(IndexError, check_index, range(4), 4) # last arg too large by 1
+        self.assertRaises(IndexError, check_index, range(4), -5) # last arg too small by 1
+        self.assertRaises(TypeError, check_index, range(10), slice("blah", 8, 2)) # str in slice raises error
+        
+        self.assertEqual(check_index(range(44), None), range(44))
+        self.assertEqual(
+            check_index(range(44), (i for i in range(0,40,2))),
+            tuple(i for i in range(0,40,2))
+        )
+        self.assertEqual(check_index(range(44), (1,2,10,20)), (1,2,10,20))
+        self.assertEqual(check_index(range(44), 14), (14,))
+        self.assertEqual(check_index(range(44), -3), (41,))
+        self.assertEqual(check_index(range(44), slice(2,None,2)), range(2,44,2))
+    
+    def test___getitem__(self):
+        getItem = self.m.__getitem__
+    
+        self.assertRaises(TypeError, getItem) # too few arguments
+        self.assertRaises(TypeError, getItem, (1,1), (1,1)) # too many arguments
+        self.assertRaises(TypeError, getItem, 1) # arg should be one- or two-item tuple
+        self.assertRaises(TypeError, getItem, (1,"pr")) # tuple contents should be int
+        self.assertRaises(IndexError, getItem, (74,0)) # index out of range
+        self.assertRaises(IndexError, getItem, (0,12)) # index out of range
+        
+        # repeated in test_to_list
+        self.assertEqual(
+            self.m[::6,::4].to_list(), 
+            [['AMC Concord', 2.5, 40.0], 
+             ['Buick Opel', 3.0, 34.0], 
+             ['Cad. Seville', 3.0, 45.0], 
+             ['Chev. Nova', 3.5, 43.0], 
+             ['Ford Mustang', 2.0, 43.0], 
+             ['Merc. Marquis', 3.5, 44.0], 
+             ['Olds Cutlass', 4.5, 42.0], 
+             ['Plym. Champ', 2.5, 37.0], 
+             ['Pont. Grand Prix', 2.0, 45.0], 
+             ['BMW 320i', 2.5, 34.0], 
+             ['Honda Accord', 3.0, 36.0], 
+             ['Toyota Celica', 2.5, 36.0], 
+             ['VW Scirocco', 2.0, 36.0]]
+        )
+        
+        # repeated in test_to_list
+        self.assertEqual(
+            self.m[1,].to_list(),
+            [['AMC Pacer', 4749.0, 17.0, 3.0, 3.0, 11.0, 3350.0, 
+              173.0, 40.0, 258.0, 2.5299999713897705, 0.0]]
+        )
+              
+        self.assertEqual(
+            self.m[(0,6,12,18,24,30,36,42,48,54,60,66,72),(0,4,8)].to_list(), 
+            [['AMC Concord', 2.5, 40.0], 
+             ['Buick Opel', 3.0, 34.0], 
+             ['Cad. Seville', 3.0, 45.0], 
+             ['Chev. Nova', 3.5, 43.0], 
+             ['Ford Mustang', 2.0, 43.0], 
+             ['Merc. Marquis', 3.5, 44.0], 
+             ['Olds Cutlass', 4.5, 42.0], 
+             ['Plym. Champ', 2.5, 37.0], 
+             ['Pont. Grand Prix', 2.0, 45.0], 
+             ['BMW 320i', 2.5, 34.0], 
+             ['Honda Accord', 3.0, 36.0], 
+             ['Toyota Celica', 2.5, 36.0], 
+             ['VW Scirocco', 2.0, 36.0]]
+        )
+              
+        self.assertEqual(
+            self.m[(0,6,12,18,24,30,36,-32,-26,-20,-14,-8,-2),(0,-8,-4)].to_list(), 
+            [['AMC Concord', 2.5, 40.0], 
+             ['Buick Opel', 3.0, 34.0], 
+             ['Cad. Seville', 3.0, 45.0], 
+             ['Chev. Nova', 3.5, 43.0], 
+             ['Ford Mustang', 2.0, 43.0], 
+             ['Merc. Marquis', 3.5, 44.0], 
+             ['Olds Cutlass', 4.5, 42.0], 
+             ['Plym. Champ', 2.5, 37.0], 
+             ['Pont. Grand Prix', 2.0, 45.0], 
+             ['BMW 320i', 2.5, 34.0], 
+             ['Honda Accord', 3.0, 36.0], 
+             ['Toyota Celica', 2.5, 36.0], 
+             ['VW Scirocco', 2.0, 36.0]]
+        )
+              
+        self.assertEqual(
+            self.m[(0,0,0,0,0),(0,0)].to_list(), 
+            [['AMC Concord', 'AMC Concord'], 
+             ['AMC Concord', 'AMC Concord'], 
+             ['AMC Concord', 'AMC Concord'], 
+             ['AMC Concord', 'AMC Concord'], 
+             ['AMC Concord', 'AMC Concord']]
+        )
+    
+    def test___setitem__(self):
+        setitem = self.m.__setitem__
+        
+        varCopy = self.m.to_list()
+        newVals = [['a str'] + [1000*i + j for j in range(11)] for i in range(74)]
+            
+        self.assertRaises(ValueError, setitem, 4, [[None]*12]) # first arg needs to be row,col tuple
+        self.assertRaises(ValueError, setitem, (1,2,4), [[None]*12]) # first arg needs to be row,col tuple
+        
+        self.assertRaises(ValueError, setitem, (slice(None,None,6),slice(None,None,4)), [row[::6] for row in varCopy[::6]]) # too few columns on right
+        self.assertRaises(ValueError, setitem, (slice(None,None,6),slice(None,None,4)), [row[::3] for row in varCopy[::6]]) # too many columns on right
+        self.assertRaises(ValueError, setitem, (slice(None,None,6),slice(None,None,4)), [row[::4] for row in varCopy[::9]]) # too few rows on right
+        self.assertRaises(ValueError, setitem, (slice(None,None,6),slice(None,None,4)), [row[::4] for row in varCopy[::2]]) # too many rows on right
+        
+        self.assertRaises(ValueError, setitem, (slice(None,None,6),3), [row[3:3] for row in varCopy[::6]]) # too few columns on right
+        self.assertRaises(ValueError, setitem, (slice(None,None,6),3), [row[3:5] for row in varCopy[::6]]) # too many columns on right
+        self.assertRaises(ValueError, setitem, (slice(None,None,6),3), [row[3:4] for row in varCopy[::9]]) # too few rows on right
+        self.assertRaises(ValueError, setitem, (slice(None,None,6),3), [row[3:4] for row in varCopy[::2]]) # too many rows on right
+        
+        self.assertRaises(ValueError, setitem, (6,slice(3,8,None)), [row[3:6] for row in varCopy[6:7]]) # too few columns on right
+        self.assertRaises(ValueError, setitem, (6,slice(3,8,None)), [row[0:9] for row in varCopy[6:7]]) # too many columns on right
+        self.assertRaises(ValueError, setitem, (6,slice(3,8,None)), [row[3:8] for row in varCopy[6:6]]) # too few rows on right
+        self.assertRaises(ValueError, setitem, (6,slice(3,8,None)), [row[3:8] for row in varCopy[4:10]]) # too many rows on right
+        
+        self.assertRaises(TypeError, setitem, (slice(None,None), (2,3)), [row[0:2] for row in varCopy]) # type mismatch
+        self.assertRaises(TypeError, setitem, (slice(None,None), (0,1)), [row[2:4] for row in varCopy]) # type mismatch
+        
+            # check to make sure strings are treated as indivisible objects
+        self.assertRaises(ValueError, setitem, (slice(0,6), 0), "string") # make sure "string" not assigned to rows as "s" "t" "r" ...
+        self.assertRaises(ValueError, setitem, (slice(0,6), 0), ("string",)) # make sure "string" not assigned to rows as "s" "t" "r" ...
+        
+        # edge case, not rows or cols selected; should return immediately
+        self.m[1:1, :] = []
+        self.assertEqual(varCopy, self.m.to_list())
+        self.m[:, 4:4] = []
+        self.assertEqual(varCopy, self.m.to_list())
+        
+        # single item
+            # first with row and column indices
+        self.m[4,5] = varCopy[4][5] + 1
+        self.assertNotEqual(self.m[4,5].to_list()[0][0], varCopy[4][5])
+        self.assertEqual(self.m[4,5].to_list()[0][0], varCopy[4][5] + 1)
+        self.m[4,5] = varCopy[4][5]
+        self.assertEqual(self.m[4,5].to_list()[0][0], varCopy[4][5])
+        
+        self.m[4,5] = [varCopy[4][5] + 1]
+        self.assertNotEqual(self.m[4,5].to_list()[0][0], varCopy[4][5])
+        self.assertEqual(self.m[4,5].to_list()[0][0], varCopy[4][5] + 1)
+        self.m[4,5] = varCopy[4][5]
+        self.assertEqual(self.m[4,5].to_list()[0][0], varCopy[4][5])
+        
+        self.m[4,5] = [[varCopy[4][5] + 1]]
+        self.assertNotEqual(self.m[4,5].to_list()[0][0], varCopy[4][5])
+        self.assertEqual(self.m[4,5].to_list()[0][0], varCopy[4][5] + 1)
+        self.m[4,5] = varCopy[4][5]
+        self.assertEqual(self.m[4,5].to_list()[0][0], varCopy[4][5])
+        
+            # now with row and column slices
+        self.m[4:5,5:6] = [[varCopy[4][5] + 1]]
+        self.assertNotEqual(self.m[4,5].to_list()[0][0], varCopy[4][5])
+        self.assertEqual(self.m[4,5].to_list()[0][0], varCopy[4][5] + 1)
+        self.m[4:5,5:6] = varCopy[4][5]
+        self.assertEqual(self.m[4,5].to_list()[0][0], varCopy[4][5])
+           
+            # assignment from generator
+        self.m[4,5] = (x for x in [varCopy[4][5] + 1])
+        self.assertNotEqual(self.m[4,5].to_list()[0][0], varCopy[4][5])
+        self.assertEqual(self.m[4,5].to_list()[0][0], varCopy[4][5] + 1)
+        self.m[4,5] = varCopy[4][5]
+        self.assertEqual(self.m[4,5].to_list()[0][0], varCopy[4][5])
+        
+        self.m[4,5] = ((x for x in [varCopy[4][5] + 1]) for _ in range(1))
+        self.assertNotEqual(self.m[4,5].to_list()[0][0], varCopy[4][5])
+        self.assertEqual(self.m[4,5].to_list()[0][0], varCopy[4][5] + 1)
+        self.m[4,5] = varCopy[4][5]
+        self.assertEqual(self.m[4,5].to_list()[0][0], varCopy[4][5])
+        
+        # single row
+            # column iterable of indices
+        self.m[4,(1,4,7,10)] = newVals[4][1:11:3]
+        self.assertNotEqual(self.m[4,(1,4,7,10)].to_list(), [varCopy[4][1:11:3]])
+        self.assertEqual(self.m[4,(1,4,7,10)].to_list(), [newVals[4][1:11:3]])
+        self.m[4,(1,4,7,10)] = varCopy[4][1:11:3]
+        self.assertEqual(self.m[4,(1,4,7,10)].to_list(), [varCopy[4][1:11:3]])
+        
+                # alternate form: [[1, 2, 3, ...]]
+        self.m[4,(1,4,7,10)] = [newVals[4][1:11:3]]
+        self.assertNotEqual(self.m[4,(1,4,7,10)].to_list(), [varCopy[4][1:11:3]])
+        self.assertEqual(self.m[4,(1,4,7,10)].to_list(), [newVals[4][1:11:3]])
+        self.m[4,(1,4,7,10)] = [varCopy[4][1:11:3]]
+        self.assertEqual(self.m[4,(1,4,7,10)].to_list(), [varCopy[4][1:11:3]])
+           
+            # column index slice
+        self.m[4,1:11:3] = newVals[4][1:11:3]
+        self.assertNotEqual(self.m[4,(1,4,7,10)].to_list(), [varCopy[4][1:11:3]])
+        self.assertEqual(self.m[4,(1,4,7,10)].to_list(), [newVals[4][1:11:3]])
+        self.m[4,1:11:3] = varCopy[4][1:11:3]
+        self.assertEqual(self.m[4,(1,4,7,10)].to_list(), [varCopy[4][1:11:3]])
+            
+            # assignment from generator
+        self.m[4,1:11:3] = (x for x in newVals[4][1:11:3])
+        self.assertNotEqual(self.m[4,(1,4,7,10)].to_list(), [varCopy[4][1:11:3]])
+        self.assertEqual(self.m[4,(1,4,7,10)].to_list(), [newVals[4][1:11:3]])
+        self.m[4,1:11:3] = (x for x in varCopy[4][1:11:3])
+        self.assertEqual(self.m[4,(1,4,7,10)].to_list(), [varCopy[4][1:11:3]])
+        
+                # alternate form: ((x for x in ...) for _ in range(1))
+        self.m[4,1:11:3] = ((x for x in newVals[4][1:11:3]) for _ in range(1))
+        self.assertNotEqual(self.m[4,(1,4,7,10)].to_list(), [varCopy[4][1:11:3]])
+        self.assertEqual(self.m[4,(1,4,7,10)].to_list(), [newVals[4][1:11:3]])
+        self.m[4,1:11:3] = ((x for x in varCopy[4][1:11:3]) for _ in range(1))
+        self.assertEqual(self.m[4,(1,4,7,10)].to_list(), [varCopy[4][1:11:3]])
+        
+        # single column
+            # column index, row iterable
+        self.m[(1,5,9,13,17), 2] = [x[2] for x in newVals[1:18:4]]
+        self.assertNotEqual(self.m.to_list(), varCopy)
+        self.assertEqual(self.m[(1,5,9,13,17), 2].to_list(), [[x[2]] for x in newVals[1:18:4]])
+        self.m[(1,5,9,13,17), 2] = [x[2] for x in varCopy[1:18:4]] # this also is an assingment using alternate form [[1], [2], [3], ...]
+        self.assertEqual(self.m.to_list(), varCopy)
+        
+                # alternate form: [[1], [2], [3], ...]
+        self.m[(1,5,9,13,17), 2] = [[x[2]] for x in newVals[1:18:4]]
+        self.assertNotEqual(self.m.to_list(), varCopy)
+        self.assertEqual(self.m[(1,5,9,13,17), 2].to_list(), [[x[2]] for x in newVals[1:18:4]])
+        self.m[(1,5,9,13,17), 2] =[[x[2]] for x in varCopy[1:18:4]]
+        self.assertEqual(self.m.to_list(), varCopy)
+            
+            # column index slice, row slice
+        self.m[1:18:4, 2:3] = [x[2] for x in newVals[1:18:4]]
+        self.assertNotEqual(self.m.to_list(), varCopy)
+        self.assertEqual(self.m[(1,5,9,13,17), 2].to_list(), [[x[2]] for x in newVals[1:18:4]])
+        self.m[1:18:4, 2:3] = [x[2] for x in varCopy[1:18:4]]
+        self.assertEqual(self.m.to_list(), varCopy)
+           
+            # assignment from generator
+        self.m[(1,5,9,13,17), 2] = (x[2] for x in newVals[1:18:4])
+        self.assertNotEqual(self.m.to_list(), varCopy)
+        self.assertEqual(self.m[(1,5,9,13,17), 2].to_list(), [[x[2]] for x in newVals[1:18:4]])
+        self.m[(1,5,9,13,17), 2] = (x[2] for x in varCopy[1:18:4])
+        self.assertEqual(self.m.to_list(), varCopy)
+        
+                # alternate form: ((x for _ in range(1)) for x in ...)
+        self.m[(1,5,9,13,17), 2] = ((x[2] for _ in range(1)) for x in newVals[1:18:4])
+        self.assertNotEqual(self.m.to_list(), varCopy)
+        self.assertEqual(self.m[(1,5,9,13,17), 2].to_list(), [[x[2]] for x in newVals[1:18:4]])
+        self.m[(1,5,9,13,17), 2] = ((x[2] for x in varCopy[1:18:4]))
+        self.assertEqual(self.m.to_list(), varCopy)
+        
+        # multi-row, multi-column
+            # row slice, column index slice
+            # stType of displacement (col 9) is int and gear_ratio (col 10) contains float,
+            # so values are truncated on assignment
+        self.m[::2, 1::4] = [row[2::4] for row in varCopy[1::2]]
+        self.assertNotEqual(self.m.to_list(), varCopy)
+        self.assertEqual(self.m[::2, 1::4].to_list(), [row[2:10:4] + [int(row[10])] for row in varCopy[1::2]])
+        self.m[::2, 1::4] = [row[1::4] for row in varCopy[::2]] # restore values
+        self.assertEqual(self.m.to_list(), varCopy) # check that values restored
+            
+            # row iterable, column slice
+        self.m[::2, 1:13:6] = [row[1::6] for row in varCopy[1::2]]
+        self.assertNotEqual(self.m.to_list(), varCopy)
+        self.assertEqual(self.m[::2, 1::6].to_list(), [row[1::6] for row in varCopy[1::2]])
+        self.m[::2, 1:13:6] = [row[1::6] for row in varCopy[::2]]
+        self.assertEqual(self.m.to_list(), varCopy)
+        
+                # stType of rep78 (col 3) is int and headroom (col 4) is float,
+                # so values are truncated on assignment
+        self.m[::2, 3:8] = [row[4:9] for row in varCopy[1::2]]
+        self.assertNotEqual(self.m.to_list(), varCopy)
+        self.assertEqual(self.m[::2, 3:8].to_list(), [[int(row[4])] + row[5:9] for row in varCopy[1::2]])
+        self.m[::2, 3:8] = [row[3:8] for row in varCopy[::2]] # restore values
+        self.assertEqual(self.m.to_list(), varCopy) # check that values restored
+            
+            # assignment from generator
+        self.m[::2, 3:8] = (row[4:9] for row in varCopy[1::2])
+        self.assertNotEqual(self.m.to_list(), varCopy)
+        self.assertEqual(self.m[::2, 3:8].to_list(), [[int(row[4])] + row[5:9] for row in varCopy[1::2]])
+        self.m[::2, 3:8] = (row[3:8] for row in varCopy[::2]) # restore values
+        self.assertEqual(self.m.to_list(), varCopy) # check that values restored
+        
+        self.m[::2, 3:8] = ((x for x in row[4:9]) for row in varCopy[1::2])
+        self.assertNotEqual(self.m.to_list(), varCopy)
+        self.assertEqual(self.m[::2, 3:8].to_list(), [[int(row[4])] + row[5:9] for row in varCopy[1::2]])
+        self.m[::2, 3:8] = ((x for x in row[3:8]) for row in varCopy[::2]) # restore values
+        self.assertEqual(self.m.to_list(), varCopy) # check that values restored
+        
+    def test_st_viewobs(self):
+        self.assertRaises(TypeError, st_viewobs, st_matrix("matA")) # arg needs to be st_view instance
+        self.assertRaises(TypeError, st_viewobs, self.m, 0) # too many args
+        self.assertRaises(TypeError, st_viewobs) # too few args
+    
+        self.assertEqual(st_viewobs(self.m), tuple(range(74)))
+        self.assertEqual(st_viewobs(self.m[::6,]), tuple(range(0,74,6)))
+        
+    def test_st_viewvars(self):
+        self.assertRaises(TypeError, st_viewvars, st_matrix("matA")) # arg needs to be st_view instance
+        self.assertRaises(TypeError, st_viewvars, self.m, 0) # too many args
+        self.assertRaises(TypeError, st_viewvars) # too few args
+    
+        self.assertEqual(st_viewvars(self.m), tuple(range(12)))
+        self.assertEqual(st_viewvars(self.m[::4,::4]), (0,4,8))
+        
 
 #import pdb ; pdb.set_trace()   
 suite = unittest.TestLoader().loadTestsFromTestCase(TestSmallFuncs)
@@ -1472,6 +1974,12 @@ print("\n")
 
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestMatrix)
+unittest.TextTestRunner(verbosity=2).run(suite)
+
+print("\n")
+
+
+suite = unittest.TestLoader().loadTestsFromTestCase(TestMirror)
 unittest.TextTestRunner(verbosity=2).run(suite)
 
 print("\n")
