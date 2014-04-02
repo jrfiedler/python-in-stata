@@ -9,7 +9,7 @@ program define python
 												LOCals(string asis) ///
 												* ]
 
-	// For the plugin, if file is empty set file local to empty quotes.
+	// For the plugin, if file is empty set filepath local to empty quotes.
 	// This is mostly to satisfy constraints in an older version of this
 	// program, but is retained in case future changes require it.
 	if ("`file'" == "") {
