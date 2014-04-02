@@ -12,8 +12,14 @@ program prem
       local _pynallvars = `_pynallvars' + 1
     }
   }
+	
+  mata: st_local("filepath", findfile("prem.py"))
+  if ("`filepath'" == "") {
+  	noi di as error "cannot find Python file prem.py"
+  	exit 601
+  }
   
-  plugin call python_plugin * `if' `in', prem.py
+  plugin call python_plugin * `if' `in' , "`filepath'"
 end
 
 program python_plugin, plugin

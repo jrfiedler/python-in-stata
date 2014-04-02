@@ -8,8 +8,14 @@ program fdi
 						FINToptions(string asis) ///
 						range(passthru) ///
 						*]
+	
+	mata: st_local("filepath", findfile("fdi.py"))
+	if (`"`filepath'"' == `""') {
+		noi di as error "cannot find Python file fdi.py"
+		exit 601
+	}
 
-	plugin call python_plugin , fdi.py
+	plugin call python_plugin , `"`filepath'"'
 	if ("`importerror'" != "") {
 		noi di as error _n "module Sympy must be installed"
 		exit

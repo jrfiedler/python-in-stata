@@ -217,7 +217,7 @@ _st_data(PyObject *self, PyObject *args)
 	if (j < 0)
 		j = num_stata_vars + j ;
 
-	/* check to make sure variable is numerical */
+	/* check to make sure variable is numeric */
 	if (SF_isstr(j + 1)) {
 		PyErr_SetString(PyExc_TypeError, 
 			"Stata variable is string") ;
@@ -229,7 +229,7 @@ _st_data(PyObject *self, PyObject *args)
 	rc = SF_vdata(j + 1, i + 1, &z) ;
 	if (rc) {
 		PyErr_SetString(PyExc_Exception, 
-			"error in retrieving Stata numerical value") ;
+			"error in retrieving Stata numeric value") ;
 		return NULL ;
 	}
 
@@ -299,7 +299,7 @@ _st_store(PyObject *self, PyObject *args)
 	if (j < 0)
 		j = num_stata_vars + j ;
 
-	/* check to make sure variable is numerical */
+	/* check to make sure variable is numeric */
 	if (SF_isstr(j + 1)) {
 		PyErr_SetString(PyExc_TypeError, 
 			"Stata variable is string") ;
@@ -311,7 +311,7 @@ _st_store(PyObject *self, PyObject *args)
 	rc = SF_vstore(j + 1, i + 1, val) ; 
 	if (rc) {
 		PyErr_SetString(PyExc_Exception, 
-			"error in setting Stata numerical value") ;
+			"error in setting Stata numeric value") ;
 		return NULL ;
 	}
 	
@@ -1032,7 +1032,7 @@ st_format(PyObject *self, PyObject *args)
 	
 	/* SF_safereforms changes the first and second arguments. 
 	Not a problem with changing the first, but for the second, 
-	the chenge causes a Python error when using a string 
+	the change causes a Python error when using a string 
 	constant in a loop. Python expects the old string to 
 	still be there and tries to reuse it. So instead, pass
 	a copy of z2 to SF_safereforms. */
@@ -1138,7 +1138,7 @@ static PyMethodDef StataMethods[] = {
 		"\tinput: str name and float value\n"
 		"\treturns: None"},
 	{"st_isnumvar", st_isnumvar, METH_VARARGS,
-	 "check if variable is numerical\n"
+	 "check if variable is numeric\n"
 	 "input: int index -or- str name/abbrev\n"
 	 "returns: boolean"},
 	{"st_isstrvar", st_isstrvar, METH_VARARGS,
