@@ -1303,7 +1303,7 @@ static void
 setup_varnames(void)
 {
 	int rc, i, j ;
-	char lname[17], varnamei[33], nvar[6], num[65], *end = NULL ;
+	char lname[17], varnamei[33], nvar[6], varnum[6], *end = NULL ;
 	/* nvar[6] covers max no. of Stata vars, 32767 */
 	
 	/* this block sets num_stata_vars */
@@ -1322,11 +1322,10 @@ setup_varnames(void)
 
 	varnames_trie = trie_initialize(NULL) ;
 	for (i = 0; i < num_stata_vars; i++) {
-		sprintf(num, "%d", i) ; /* safe because nvar limited to 6 chars */
-		strcat(lname, num) ;
-		for (j = 0; j < 6 && (lname[11+j] = num[j]) != '\0'; j++)
+		sprintf(varnum, "%d", i) ;
+		for (j = 0; j < 6 && (lname[11+j] = varnum[j]) != '\0'; j++)
 			;
-		rc = SF_macro_use(lname, varnamei, 33) ;
+		rc = SF_macro_use(lname, varnamei, 32) ;
 		if (rc) {
 			varnames[i][0] = '\0' ;
 			continue ;

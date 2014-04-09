@@ -5,17 +5,14 @@ program define python
 	version 12.1
 	
 	syntax [varlist(default=none)] [if] [in] [, File(string) ///
-												Args(string asis) ///
-												LOCals(string asis) ///
-												* ]
-
+	                                            Args(string asis) ///
+	                                            LOCals(string asis) ///
+	                                            * ]
+	
 	// For the plugin, if file is empty set filepath local to empty quotes.
 	// This is mostly to satisfy constraints in an older version of this
 	// program, but is retained in case future changes require it.
-	if ("`file'" == "") {
-		local filepath = `""""'
-	}
-	else {
+	if ("`file'" != "") {
 		mata: st_local("filepath", findfile("`file'"))
 		if ("`filepath'" == "") {
 			noi di as error `"file "`file'" not found"'
