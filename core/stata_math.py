@@ -4,7 +4,7 @@ from stata_missing import MissingValue, MISSING as mv, get_missing
 from stata_variable import StataVarVals
 
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 
 def _is_missing(x):
@@ -972,7 +972,7 @@ def st_sign(x):
     Returns
     -------
     the sign of x (-1 if < 0; 0 if == 0; 1 if > 0) if x is non-missing,
-    MISSING(".") otherwise
+    MISSING (".") otherwise
     
     """
     if isinstance(x, StataVarVals):
@@ -995,7 +995,7 @@ def st_sin(x):
     Returns
     -------
     sine of x if x is non-missing and -1e+18 <= x <= 1e+18,
-    MISSING(".") otherwise
+    MISSING (".") otherwise
     
     """
     if isinstance(x, StataVarVals):
@@ -1023,7 +1023,7 @@ def st_sinh(x):
     Returns
     -------
     hyperbolic sine of x if x is non-missing and -1e+18 <= x <= 1e+18,
-    MISSING(".") otherwise
+    MISSING (".") otherwise
     
     Note
     ----
@@ -1046,7 +1046,7 @@ def st_sqrt(x):
     Returns
     -------
     square root of x if x is non-missing and >= 0,
-    MISSING(".") otherwise
+    MISSING (".") otherwise
     
     """
     if isinstance(x, StataVarVals):
@@ -1101,7 +1101,7 @@ def st_tan(x):
     Returns
     -------
     tangent of x if x is non-missing and -1e+18 <= x <= 1e+18,
-    MISSING(".") otherwise
+    MISSING (".") otherwise
     
     """
     if isinstance(x, StataVarVals):
