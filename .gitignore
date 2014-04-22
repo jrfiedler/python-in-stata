@@ -1,2 +1,7 @@
 core/__pycache__
 core/find_problems.py
+*.toc
+*.log
+*.blg
+*.bbl
+*.aux

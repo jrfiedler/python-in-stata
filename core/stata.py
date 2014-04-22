@@ -11,7 +11,7 @@ from stata_plugin import (
 from stata_variable import StataVariable
 
 
-__version__ = "0.2.0"
+__version__ = "1.0.0"
 
 
 __all__ = [
@@ -268,74 +268,6 @@ def st_sstore(obs, cols, vals):
     for obs_num, value_row in zip(obs, vals):
         for col_num, value in zip(cols, value_row):
             _st_sstore(obs_num, col_num, value)
-
-
-class st_Variable():
-    """Python class of views onto a single variable 
-    in the Stata dataset in memory
-    
-    """
-    def __init__(self, variable):
-        if isinstance(variable, str):
-            col_num = st_varindex(variable, True)
-        elif isisntance(variable, int):
-            nvar = st_nvar()
-            if not -nvar <= variable < nvar:
-                raise IndexError("variable number out of range")
-            if variable < 0:
-                variable = nvar + variable
-            col_num = variable
-        else:
-            raise TypeError("argument should be str name or int index")
-            
-        if st_isstrvar(col_num):
-            self._getter = _st_sdata
-            self._setter = _st_sstore
-        else:
-            self._getter = _st_data
-            self._setter = _st_store
-            
-        self._nobs = st_nobs()
-        self._col_num = col_num
-                         
-    def __iter__(self):
-        """return iterable of obs"""
-        getter, col_num = self._getter, self._col_num
-        return (getter(i, col_num) for i in range(self._nobs))
-    
-    def __len__(self):
-        return self._nobs
-    
-    def __getitem__(self, index):
-        if isinstance(index, slice):
-            start, stop, step = index.indices(self._nobs)
-            getter, col_num = self._getter, self._col_num
-            return [getter(i, col_num) for i in range(start, stop, step)]
-        if not isinstance(index, int):
-            raise TypeError("index should be int or slice")
-        return self._getter(self._col_num, index)
-            
-    def __setitem__(self, index, value):
-        if isinstance(index, slice):
-            index = range(self._nobs)[index]
-        elif isinstance(index, int):
-            index = (index,)
-        else:
-            raise TypeError("index should be int or slice")
-        
-        if not isinstance(value, collections.Iterable):
-            if len(index) > 1:
-                raise TypeError("this assignment requires iterable")
-            value = (value,)
-        else:
-            if not hasattr(value, "__len__"):
-                value = tuple(value)
-            if len(value) != len(index):
-                raise ValueError("iterable length does not match slice length")
-        
-        setter, col_num = self._setter, self._col_num
-        for i,v in zip(index, value):
-            setter(i, col_num, v)
 
         
 def st_view(rownums=None, colnums=None, selectvar=None):
