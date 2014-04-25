@@ -270,12 +270,12 @@ def st_sstore(obs, cols, vals):
             _st_sstore(obs_num, col_num, value)
 
         
-def st_view(rownums=None, colnums=None, selectvar=None):
+def st_view(rownums=None, colnums=None, selectvar=""):
     """return a view onto current Stata data"""
     nobs = st_nobs()
     nvar = st_nvar()
     
-    if rownums is not None:
+    if not st_ismissing(rownums):
         if isinstance(rownums, int):
             rownums = (rownums,)
         elif not isinstance(rownums, collections.Iterable):
@@ -288,8 +288,10 @@ def st_view(rownums=None, colnums=None, selectvar=None):
             if not all(-nobs <= r < nobs for r in rownums):
                 raise IndexError("rownums out of range")
             rownums = tuple(r if r >= 0 else nobs + r for r in rownums)
+    else:
+        rownums = None
     
-    if colnums is not None:
+    if not st_ismissing(colnums):
         if isinstance(colnums, int):
             colnums = (colnums,)
         elif not isinstance(colnums, collections.Iterable):
@@ -302,8 +304,10 @@ def st_view(rownums=None, colnums=None, selectvar=None):
             if not all(-nvar <= c < nvar for c in colnums):
                 raise IndexError("colnums out of range")
             colnums = tuple(c if c >= 0 else nvar + c for c in colnums)
+    else:
+        colnums = None
             
-    if not (selectvar is None or selectvar == ""):
+    if not selectvar == "":
         if isinstance(selectvar, str):
             selectvar = st_varindex(selectvar, True)
         elif not isinstance(selectvar, int):
@@ -314,9 +318,11 @@ def st_view(rownums=None, colnums=None, selectvar=None):
         if rownums is None:
             rownums = tuple(range(nobs))
         
-        if selectvar == MISSING:
-            rownums = tuple(r for r in rownums
-                if not any(st_ismissing(_st_data(r, c)) for c in colnums))
+        if st_ismissing(selectvar):
+            rownums = tuple(
+                r for r in rownums
+                if not any(st_ismissing(_st_data(r,c)) for c in colnums)
+            )
         else:
             rownums = tuple(
                 r for r in rownums if _st_data(r, selectvar) != 0
@@ -480,10 +486,15 @@ class StataView():
             not len(self._colnums) == len(other._colnums)):
                 return False
         
+        # This tests whether *contents* are the same.
+        # It would be a little less permissive but 
+        # easier and faster to test that rownums and 
+        # colnums are the same. Which is better?
         rows1, cols1 = self._rownums, self._colnums
         rows2, cols2 = other._rownums, other._colnums
         getters, ncols = self._getters, self._ncols
-        return all(st_isstrvar(c1) == st_isstrvar(c2) and
+        return all(
+            st_isstrvar(c1) == st_isstrvar(c2) and
             all(
                 getters[i](r1, c1) == getters[i](r2, c2)
                 for r1, r2 in zip(rows1, rows2)
