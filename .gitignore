@@ -1,1 +1,10 @@
-*.pdf
+core/__pycache__
+core/find_problems.py
+core/stplugin*
+core/*.dta
+python.pkg
+*.toc
+*.log
+*.blg
+*.bbl
+*.aux
