@@ -1044,7 +1044,10 @@ class TestView(unittest.TestCase):
         self.assertEqual(self.v, st_view())
         self.assertEqual(self.v[::2, ], st_view(range(0,74,2)))
         self.assertEqual(self.v[:, ::2], st_view(None, range(0,12,2)))
-        self.assertEqual(self.v[::2, ::2], st_view(range(0,74,2), range(0,12,2)))
+        self.assertEqual(
+            self.v[::2, ::2],
+            st_view(range(0,74,2), range(0,12,2))
+        )
         
         foreign_obs = tuple(x for x in range(74) if _st_data(x, 11))
         
@@ -1053,8 +1056,32 @@ class TestView(unittest.TestCase):
         
         even_for_obs = tuple(x for x in range(0,74,2) if _st_data(x, 11))
         
-        self.assertEqual(self.v[even_for_obs, ], st_view(range(0,74,2), None, 11))
-        self.assertEqual(self.v[even_for_obs, ], st_view(range(0,74,2), None, "for"))
+        self.assertEqual(
+            self.v[even_for_obs, ],
+            st_view(range(0,74,2), None, 11)
+        )
+        self.assertEqual(
+            self.v[even_for_obs, ],
+            st_view(range(0,74,2), None, "for")
+        )
+        
+        
+        # Check that using missing value for `selectvar` gets all rows
+        # except where there are missing values.
+        # Only variable with  missing is `rep78`.
+        nonmiss_rep = tuple(
+            x for x in range(74)
+            if not st_ismissing(_st_data(x,3))
+        )
+        
+        self.assertEqual(st_view(selectvar=None)._rownums, nonmiss_rep)
+        self.assertEqual(st_view(selectvar=mvs[0])._rownums, nonmiss_rep)
+        self.assertEqual(st_view(selectvar=mvs[8])._rownums, nonmiss_rep)
+        
+        self.assertEqual(
+            st_view(range(0,74,10), selectvar=mvs[8])._rownums,
+            (0, 10, 20, 30, 40, 60, 70)  # `rep78` is missing in obs 50
+        )
         
     def test___init__(self):
         self.assertEqual(self.v._nrows, 74)

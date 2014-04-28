@@ -307,23 +307,26 @@ def st_view(rownums=None, colnums=None, selectvar=""):
     else:
         colnums = None
             
-    if not selectvar == "":
-        if isinstance(selectvar, str):
-            selectvar = st_varindex(selectvar, True)
-        elif not isinstance(selectvar, int):
-            raise TypeError("selectvar should be str, int, or None")
-        elif not -nvar <= selectvar < nvar:
-            raise IndexError("selectvar index out of range")
-        
+    if not selectvar == "":        
         if rownums is None:
             rownums = tuple(range(nobs))
         
         if st_ismissing(selectvar):
+            numeric = tuple(
+                c for c in (range(nvar) if colnums is None else colnums)
+                if st_isnumvar(c)
+            )
             rownums = tuple(
                 r for r in rownums
-                if not any(st_ismissing(_st_data(r,c)) for c in colnums)
+                if not any(st_ismissing(_st_data(r,c)) for c in numeric)
             )
         else:
+            if isinstance(selectvar, str):
+                selectvar = st_varindex(selectvar, True)
+            elif not isinstance(selectvar, int):
+                raise TypeError("selectvar misspecified; invalid type")
+            elif not -nvar <= selectvar < nvar:
+                raise IndexError("selectvar index out of range")
             rownums = tuple(
                 r for r in rownums if _st_data(r, selectvar) != 0
             )
