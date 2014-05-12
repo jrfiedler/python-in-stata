@@ -4,7 +4,7 @@ from stata_missing import MissingValue, MISSING as mv, get_missing
 from stata_variable import StataVarVals
 
 
-__version__ = "1.0.0"
+__version__ = "0.1.0"
 
 
 def _is_missing(x):

@@ -15,7 +15,7 @@
 \lstset{basicstyle=\ttfamily}
 \lstset{upquote=true}
 
-\title{The Python plugin for Stata, version 1.0.0}
+\title{The Python plugin for Stata, version 0.2.0}
 \author{James Fiedler}
 
 \begin{document}
@@ -37,9 +37,9 @@ This document assumes the reader has some experience with Python, but extensive 
 
 \section{What's new}
 
-Changes in version 1.0.0
+Changes in version 0.2.0
 \begin{itemize}
-\item \lstinline{st_Matrix} and \lstinline{st_View} (note the capital \lstinline{M} and \lstinline{V}) have been replaced with \lstinline{st_matrix} and \lstinline{st_view} (lowercase \lstinline{m} and \lstinline{v}).
+\item \lstinline{st_Matrix} and \lstinline{st_View} (capital \lstinline{M} and \lstinline{V}) have been replaced with \lstinline{st_matrix} and \lstinline{st_view}.
 \item The usual ``\lstinline{>>>}'' Python prompt has been added to help differentiate Python mode from Stata Ado mode. Unfortunately, the default dot prompt remains, so the full prompt is ``\lstinline{>>>.}''.
 \item New \lstinline{st_mirror} function. See the description of \lstinline{st_mirror} in \S\ref{func_descript}. See example usage in \S\ref{st_mirror_example}.
 \item New \lstinline{stata_math} module. See \S\ref{stata_math_module} and see \S\ref{st_mirror_example} for example usage with \lstinline{st_mirror}.
@@ -163,6 +163,8 @@ The syntax for \lstinline$python.ado$ is
 \end{lstlisting}
   
   If no file is specified, an interactive session is begun. The number of arguments in the \lstinline{args} option is stored in Stata local \lstinline$_pynargs$, and the arguments are stored in \lstinline$_pyarg0$, \lstinline$_pyarg1$, etc. The number of variables in the varlist and their names are stored in Stata locals \lstinline$_pynvars$, and \lstinline$_pyvar0$, \lstinline$_pyvar1$, etc. (see example in \S\ref{file_example}).
+	
+	If a file is specified and it is not specified with an asolute path, then the file is searched for in the \lstinline{adopath} (not the Python path). Thus you can keep Python files with related \lstinline{.ado} or \lstinline{.do} files by giving the Python file a similar name. To prevent searches along the \lstinline{adopath}, specify the absolute path the file.
 		
 There is one drawback to using \lstinline$python.ado$ rather than using the plugin directly. With  \lstinline$python.ado$ the user will have access only to those locals defined within \lstinline$python.ado$ or within the Python session or script. Any locals defined interactively before starting an interactive session will be invisible if using \lstinline$python.ado$ to invoke the interactive session. See example in \S\ref{local_example}.
 
@@ -199,9 +201,11 @@ The mininal syntax for calling the plugin is
 	\end{lstlisting}
 }
 	
-With either version, the plugin runs the file if \lstinline{file_name} is given. Otherwise, an interactive session is begun. In the second version, variables of interest can be specified in locals, as is done in \lstinline{python.ado} (see \S\ref{syntax}).
+With either version, the plugin runs the file if \lstinline{file_name} is given. Unlike with the \lstinline{python} command, a specified \lstinline{file_name} is not searched for. You must provide the path, or the file must be in the same directory. The Mata function \lstinline{findfile()} is useful for finding the path to a file in the \lstinline{adopath} (see \S\ref{file_example}).
+
+If no \lstinline{file_name} is given, an interactive session is begun. With the recommended syntax above, variables of interest can be specified in locals, as is done in \lstinline{python.ado} (see \S\ref{syntax}).
 	
-The second version solves several problems with the plugin:
+The recommended way to call the plugin solves several problems:
 	\begin{enumerate}
 		\item Estimation commands can introduce ``hidden'' variables that are partially visible in the plugin and occupy a position in the varlist, but cannot be interacted with (as far as I know).
 		
@@ -209,15 +213,11 @@ The second version solves several problems with the plugin:
 		
 		\item If a subset of variables could be specified, indexing of variables can be inconsistent between functions in the plugin. Some functions index relative to the specified set, and some index relative to the entire varlist (including hidden variables). Clearing hidden variables with \lstinline{ereturn clear} and using \lstinline{`=cond(c(k) > 0, "*", "")'} in the plugin call help to ensure that the indexing is consistent.
 		
-		The minimal syntax given above implies that a subset of variables can be specified. In fact, while the syntax is allowed, the plugin tries to disallow actually using subsets because of the problems discussed here.
+		The minimal, non-recommeded syntax above implies that a subset of variables can be specified. In fact, while the syntax is allowed, the plugin tries to disallow actually using subsets because of the problems discussed here.
 		
 		\item The remainder of the extra lines in the second version provide the variable names to the plugin so that \lstinline{st_varname} can look up names by index and \lstinline{st_varindex} can return the index for a name. Supplying the variable names in this way also allows the C code to be written so that if the simpler, not-recommended syntax is used, the user is presented with an empty varlist rather than inconsistent indexing and hidden variables.
 	\end{enumerate}
-		
-
-
-\section{Using Python files} \label{using_files}
-
+	
 
 
 \section{The \lstinline$stata_missing$ module} \label{stata_missing}
@@ -2570,7 +2570,9 @@ True
 
 \subsection{Using Python files} \label{file_example}
 
-To run a Python script, just use the \lstinline{python} command with the \lstinline{file} option (or call the plugin directly, see \S\ref{using_plugin}). For example, suppose you have a Python file called \lstinline$pyfile.py$ and its contents are \newline
+To run a Python script, just use the \lstinline{python} command with the \lstinline{file} option (or call the plugin directly, see \S\ref{using_plugin}). With the \lstinline{python} command, the Python file can be anywhere in your Ado path (including the working directory). If you want to use files with the plugin directly, you will have to specify the path if the file is not in the working directory, or use the Mata function \lstinline{findfile()} to find the path.
+
+For example, suppose you have a Python file called \lstinline$pyfile.py$ and its contents are \newline
 
 \hrule
 {\small
@@ -2592,7 +2594,7 @@ print("first row of data is\n\t{}\n\n".format(firstRow))
 
 \medskip
 
-\noindent You can run the file like so:
+\noindent If the file is in the Ado path, you can run the file interactively using \lstinline{python}:
 
 \begin{stlog}
 . clear
@@ -2618,7 +2620,9 @@ first row of data is
 
 \medskip
 
-To use Python files in an Ado command, just use the \lstinline{python} command or plugin call within the Ado file. If calling the plugin directly, consider the recommendations in \S\ref{using_plugin}. Here is an example for a command called \lstinline{prem}, for \textbf{p}rint \textbf{r}egular \textbf{e}xpression \textbf{m}atch. The command uses Python's regular expression module \lstinline{re} to find pattern matches in a Stata string variable. The command uses an Ado file called \lstinline{prem.ado}, which sonsists of\newline
+To use Python files inside your own Ado command, just use the \lstinline{python} command as above or call the plugin directly. If calling the plugin directly, consider the recommendations in \S\ref{using_plugin}. You will also probably want to use the Mata function \lstinline{findfile()} to find the Python file.
+
+Here is an example for a command called \lstinline{prem}, for \textit{p}rint \textit{r}egular \textit{e}xpression \textit{m}atch. The command uses Python's regular expression module \lstinline{re} to find pattern matches in a Stata string variable. The command uses an Ado file called \lstinline{prem.ado}, which consists of\newline
 
 \hrule
 {\small
@@ -2637,8 +2641,15 @@ program prem
       local _pynallvars = `_pynallvars' + 1
     }
   }
+	
+  // find prem.py in Ado path
+  mata: st_local("filepath", findfile("prem.py"))
+  if ("`filepath'" == "") {
+    noi di as error "cannot find Python file prem.py"
+    exit 601
+  }
   
-  plugin call python_plugin * `if' `in', prem.py
+  plugin call python_plugin * `if' `in' , "`filepath'"
 end
 
 program python_plugin, plugin
@@ -2646,8 +2657,9 @@ program python_plugin, plugin
 \hrule
 
 \medskip
+\medskip
 
-\noindent and a Python file \lstinline{prem.py}, which consists of\newline
+\noindent The majority of the code in \lstinline{prem.ado} can be considered a template for Stata commands that call a Python file. It implements the suggestions in \S\ref{using_plugin} and uses Mata to find the desired Python file. The Python file \lstinline{prem.py} consists of\newline
 
 \hrule
 {\small
@@ -2669,8 +2681,9 @@ for i in range(st_in1(), st_in2()):
 \hrule
 
 \medskip
+\medskip
 
-The Ado file should be in Stata's \lstinline{adopath} and the Python file should be in the Python path. Then the command can be used like so:
+Both \lstinline{prem.ado} and \lstinline{prem.py} should be in Stata's \lstinline{adopath}. The command can be used like so:
 
 \begin{stlog}
 . clear
@@ -2694,7 +2707,7 @@ Toyota Coro{\underbar{ll}}a
 VW Ra{\underbar{bb}}it
 VW Sciro{\underbar{cc}}o
 {\smallskip}
-. prem make if foreign, regex("((.)\\2+)")
+. prem make if foreign , regex("((.)\\2+)")
 Audi 5{\underbar{000}}
 Datsun 2{\underbar{00}}
 Honda A{\underbar{cc}}ord

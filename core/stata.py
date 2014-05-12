@@ -11,7 +11,7 @@ from stata_plugin import (
 from stata_variable import StataVariable
 
 
-__version__ = "1.0.0"
+__version__ = "0.2.0"
 
 
 __all__ = [
