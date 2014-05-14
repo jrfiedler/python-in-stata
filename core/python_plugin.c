@@ -1205,7 +1205,7 @@ run_file(char *filename)
 		return 601 ;
 	}
 	
-	/* workaround found in comment at stackoverflow.com/3654652 */
+	/* workaround found in comment at stackoverflow.com/questions/3654652 */
 	obj = Py_BuildValue("s", filename) ;
 	fp = _Py_fopen(obj, "r+") ;
 	if (fp != NULL) {

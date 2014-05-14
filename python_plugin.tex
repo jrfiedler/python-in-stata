@@ -236,7 +236,7 @@ Example usage of the \lstinline{stata_missing} module is given in \S\ref{missing
 	
 The \lstinline$stata$ module provides functions for interacting with Stata variables, matrices, macros, and numeric scalars. The module is automatically imported with the first use of the plugin, just as if the user had typed \lstinline$from stata import *$. The module is imported whether the plugin was invoked directly (``\lstinline$plugin call$ ...'') or through \lstinline$python.ado$, and for both the interactive interpreter and running files. 
 			
-Almost all of the functionality provided by the \lstinline$stata$ module is mirrored by functionality in Mata (but not vice versa). In an effort to be easier to use, the functions in the \lstinline$stata$ module were made to mimic functions in Mata. For example, in Mata the function \lstinline$st_local$ retrieves the value of a local macro if given one argument (its name) or sets the value of the macro if given two arguments (name and value). In the \lstinline$stata$ module there is a function \lstinline$st_local$ with the same behavior. Of course, some changes had to be made between Mata and Python versions of functions. In Mata, when the user tries to access a non-existent numerical scalar, an empty matrix \lstinline$J(0,0)$ is returned. Python has no inherent notion of a matrix, so instead the Python function raises a \lstinline{ValueError}.
+Almost all of the functionality provided by the \lstinline$stata$ module is mirrored by functionality in Mata (but not vice versa). In an effort to be easier to use, the functions in the \lstinline$stata$ module were made to mimic functions in Mata. For example, in Mata the function \lstinline$st_local$ retrieves the value of a local macro if given one argument (its name) or sets the value of the macro if given two arguments (name and value). In the \lstinline$stata$ module there is a function \lstinline$st_local$ with the same behavior. Of course, some changes had to be made between Mata and Python versions of functions. In Mata, when the user tries to access a non-existent numeric scalar, an empty matrix \lstinline$J(0,0)$ is returned. Python has no inherent notion of a matrix, so instead the Python function raises a \lstinline{ValueError}.
 			
 Many of the functions in the \lstinline$stata$ module have indexing arguments. Keep in mind that while Stata uses 1-based indexing (i.e., the first meaningful index is 1 for data variables, observations, and matrix elements), the Python convention is to begin indexing at 0. Thus, if the first variable in a dataset is numeric, its first observation can be obtained via either 
 	\begin{quote}
@@ -368,7 +368,7 @@ Many of the functions in the \lstinline$stata$ module have indexing arguments. K
 				\end{tabular}
 								
 			\vspace{1.5mm}
-			\noindent Get value from given numerical variable in given observation. The allowed argument values are 
+			\noindent Get value from given numeric variable in given observation. The allowed argument values are 
 			\[
 				-\texttt{st\_nobs()} \leq \texttt{obsnum} < \texttt{st\_nobs()}
 			\]
@@ -580,7 +580,7 @@ Many of the functions in the \lstinline$stata$ module have indexing arguments. K
 				\end{tabular}
 								
 			\vspace{1.5mm}
-			\noindent Determine if given text str is a valid Stata numerical format. Numerical formats are any valid formats that are not string formats. \newline
+			\noindent Determine if given text str is a valid Stata numeric format. Numeric formats are any valid formats that are not string formats. \newline
 			
 			
 			\ \newline
@@ -770,7 +770,7 @@ Many of the functions in the \lstinline$stata$ module have indexing arguments. K
 				\end{tabular}
 								
 			\vspace{1.5mm}
-			\noindent Get value from given numerical scalar if using 1-argument version, or set the value if using 2-argument version. In the 1-argument version, if the scalar does not exist a \lstinline{ValueError} will be raised. Note this is unlike Mata, where \lstinline{st_numscalar} returns \lstinline{J(0,0,.)} if the scalar does not exist. In both 1-argument and 2-argument versions, if the scalar name is malformed a \lstinline{ValueError} will be raised. 
+			\noindent Get value from given numeric scalar if using 1-argument version, or set the value if using 2-argument version. In the 1-argument version, if the scalar does not exist a \lstinline{ValueError} will be raised. Note this is unlike Mata, where \lstinline{st_numscalar} returns \lstinline{J(0,0,.)} if the scalar does not exist. In both 1-argument and 2-argument versions, if the scalar name is malformed a \lstinline{ValueError} will be raised. 
 			
 			Unlike Mata's \lstinline{st_numscalar}, this \lstinline{st_numscalar} cannot access \lstinline{r()}, \lstinline{e()}, and \lstinline{c()} macros. \newline
 			
@@ -855,7 +855,7 @@ Many of the functions in the \lstinline$stata$ module have indexing arguments. K
 				\end{tabular}
 								
 			\vspace{1.5mm}
-			\noindent Set value in given numerical variable in given observation. The allowed argument values are 
+			\noindent Set value in given numeric variable in given observation. The allowed argument values are 
 			\[
 				-\texttt{st\_nobs()} \leq \texttt{obsnum} < \texttt{st\_nobs()}
 			\]
@@ -910,7 +910,7 @@ See \S\ref{data_and_store_example} for other examples.
 				\end{tabular}
 								
 			\vspace{1.5mm}
-			\noindent Set value in given numerical variable in given observation. The allowed argument values are 
+			\noindent Set value in given numeric variable in given observation. The allowed argument values are 
 			\[
 				-\texttt{st\_nobs()} \leq \texttt{obsnum} < \texttt{st\_nobs()}
 			\]
@@ -1058,7 +1058,7 @@ Python's built-in math functions won't work with missing values or Stata variabl
 \HLI{49} python (type {\bftt{exit()}} to exit) \HLI{4}
 {\bftt{>>>}}. v = st_view()
 {\smallskip}
-{\bftt{>>>}}. v[:4, :4]
+{\bftt{>>>}}. v[:4, :4].list()
 {\smallskip}
   obs: 4
  vars: 4
@@ -1074,7 +1074,7 @@ r3 Buick Centu      4816        20         3
 {\smallskip}
 {\bftt{>>>}}. from math import sin
 {\smallskip}
-{\bftt{>>>}}. sin(v.get(2,2))
+{\bftt{>>>}}. sin(v.get(2, 2))
 -0.008851309290403876
 {\smallskip}
 {\bftt{>>>}}. sin(v.get(2, 3))
@@ -1242,10 +1242,10 @@ noi di "back in do file"
 . run do_example
 in do file
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. "in python"
+{\bftt{>>>}}. "in python"
 'in python'
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 back in do file
 \end{stlog}
@@ -1276,11 +1276,11 @@ program python_plugin, plugin
 . ado_example
 in ado_example
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. st_local("scname", "the_scalar")
+{\bftt{>>>}}. st_local("scname", "the_scalar")
 {\smallskip}
-. st_numscalar("the_scalar", 12345)
+{\bftt{>>>}}. st_numscalar("the_scalar", 12345)
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 back in ado_example
 the_scalar = 12345
@@ -1292,33 +1292,33 @@ the_scalar = 12345
 	
 \subsection{The interactive interpreter takes single-line inputs} \label{single_line_example}
 
-The error below comes from trying to use a multi-line statement (the user hit the \lstinline$enter$ key after typing \lstinline$for i in range(5):$). The following lines in the example show ways to squeeze moderately complicated statements into a single line. The definition of \lstinline$mlf$ below does not work in Python 2.7.
+The error below comes from trying to use a multi-line statement (the user hit the \lstinline$enter$ key after typing \lstinline$for i in range(5):$). The following lines in the example show ways to squeeze moderately complicated statements into a single line.
 
 \smallskip
 
 \begin{stlog}
 . python
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. for i in range(5):
+{\bftt{>>>}}. for i in range(5):
 {\color{red}  File "<string>", line 1
     for i in range(5):
                      {\caret}
 SyntaxError: unexpected EOF while parsing}
 {\smallskip}
-. for i in range(5): print(i)
+{\bftt{>>>}}. for i in range(5): print(i)
 0
 1
 2
 3
 4
 {\smallskip}
-. def mlf(): print("multi-", end="") ; print("line", end=" ") ; print("function
+{\bftt{>>>}}. def mlf(): print("multi-", end="") ; print("line", end=" ") ; print("function
 > ")
 {\smallskip}
-. mlf()
+{\bftt{>>>}}. mlf()
 multi-line function
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 \end{stlog}
 
@@ -1337,46 +1337,46 @@ Missing values are implemented in the \lstinline$stata_missing$ module, see \S\r
 \begin{stlog}
 . python
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. st_numscalar("new", None)
+{\bftt{>>>}}. st_numscalar("new", None)
 {\smallskip}
-. st_numscalar("new")
+{\bftt{>>>}}. st_numscalar("new")
 .
 {\smallskip}
-. 0 < 100 < float("inf")
+{\bftt{>>>}}. 0 < 100 < float("inf")
 True
 {\smallskip}
-. 0 < . < float("inf")
+{\bftt{>>>}}. 0 < . < float("inf")
 {\color{red}  File "<string>", line 1
     0 < . < float("inf")
         {\caret}
 SyntaxError: invalid syntax}
 {\smallskip}
-. from stata_missing import MISSING as mv
+{\bftt{>>>}}. from stata_missing import MISSING as mv
 {\smallskip}
-. 0 < mv < float("inf")
+{\bftt{>>>}}. 0 < mv < float("inf")
 True
 {\smallskip}
-. mv
+{\bftt{>>>}}. mv
 .
 {\smallskip}
-. mv.value
+{\bftt{>>>}}. mv.value
 8.98846567431158e+307
 {\smallskip}
-. from stata_missing import MISSING_VALS as mvs
+{\bftt{>>>}}. from stata_missing import MISSING_VALS as mvs
 {\smallskip}
-. mvs
+{\bftt{>>>}}. mvs
 (., .a, .b, .c, .d, .e, .f, .g, .h, .i, .j, .k, .l, .m, .n, .o, .p, .q, .r, .s,
 >  .t, .u, .v, .w, .x, .y, .z)
 {\smallskip}
-. st_numscalar("new", mvs[14])
+{\bftt{>>>}}. st_numscalar("new", mvs[14])
 {\smallskip}
-. st_numscalar("new")
+{\bftt{>>>}}. st_numscalar("new")
 .n
 {\smallskip}
-. mv == mvs[0]
+{\bftt{>>>}}. mv == mvs[0]
 True
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 \end{stlog}
 
@@ -1408,39 +1408,39 @@ True
 {\smallskip}
 . python
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. st_varindex("not_a_variable")
+{\bftt{>>>}}. st_varindex("not_a_variable")
 {\color{red}variable not_a_variable not found
 Traceback (most recent call last):
   File "<string>", line 1, in <module>
-ValueError: Stata variable not found (abbrev. not allowed)}
+ValueError: no Stata variable found}
 {\smallskip}
-. st_varindex("make")
+{\bftt{>>>}}. st_varindex("make")
 0
 {\smallskip}
-. st_isstrvar(0)
+{\bftt{>>>}}. st_isstrvar(0)
 True
 {\smallskip}
-. _st_sdata(0,0)
+{\bftt{>>>}}. _st_sdata(0,0)
 'AMC Concord'
 {\smallskip}
-. st_varindex("rep")
+{\bftt{>>>}}. st_varindex("rep")
 {\color{red}Traceback (most recent call last):
   File "<string>", line 1, in <module>
 ValueError: no Stata variable found (abbrev. not allowed)}
 {\smallskip}
-. st_varindex("rep78")
+{\bftt{>>>}}. st_varindex("rep78")
 3
 {\smallskip}
-. st_varindex("rep", True)
+{\bftt{>>>}}. st_varindex("rep", True)
 3
 {\smallskip}
-. st_isnumvar("rep")
+{\bftt{>>>}}. st_isnumvar("rep")
 True
 {\smallskip}
-. _st_data(0,3)
+{\bftt{>>>}}. _st_data(0,3)
 3.0
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 \end{stlog}
 
@@ -1450,7 +1450,7 @@ True
 
 \subsection{Stata variable types do not change on replacement} \label{no_type_change_example}
 
-In Stata, if you replace a numerical variable's value with a value outside its type range, the value gets promoted (unless the original type is \lstinline{float}). For example, the range of non-missing values in \lstinline{byte} is $-127$ to $100$. If you replace a \lstinline{byte} value with something outside of this range, the variable will be promoted to a type that can hold larger values. If you replace an integer variable value with a non-integer like $1.5$, the type will be promoted to \lstinline$double$. However, if you make these replacements in Python, the type will not be promoted. If you replace with a value outside the type's range, a missing value will be inserted. If you replace an integer variable value with a non-integer like $1.5$, the value will be truncated to an integer. (By the way, this also happens when replacing Stata variable values using Mata.)
+In Stata, if you replace a numeric variable's value with a value outside its type range, the value gets promoted (unless the original type is \lstinline{float}). For example, the range of non-missing values in \lstinline{byte} is $-127$ to $100$. If you replace a \lstinline{byte} value with something outside of this range, the variable will be promoted to a type that can hold larger values. If you replace an integer variable value with a non-integer like $1.5$, the type will be promoted to \lstinline$double$. However, if you make these replacements in Python, the type will not be promoted. If you replace with a value outside the type's range, a missing value will be inserted. If you replace an integer variable value with a non-integer like $1.5$, the value will be truncated to an integer. (By the way, this also happens when replacing Stata variable values using Mata.)
 
 First, in Stata.
 
@@ -1505,13 +1505,13 @@ obs was 0, now 1
 {\smallskip}
 . python
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. _st_store(0, 0, 101)
+{\bftt{>>>}}. _st_store(0, 0, 101)
 {\smallskip}
-. _st_store(0, 1, 120000)
+{\bftt{>>>}}. _st_store(0, 1, 120000)
 {\smallskip}
-. _st_store(0, 2, 1.5)
+{\bftt{>>>}}. _st_store(0, 2, 1.5)
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 {\smallskip}
 . list
@@ -1541,21 +1541,21 @@ file auto_copy.dta saved
 {\smallskip}
 . python
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. st_data(0, 0)
+{\bftt{>>>}}. st_data(0, 0)
 {\color{red}Traceback (most recent call last):
   File "<string>", line 1, in <module>
   File "stata.py", line 206, in st_data
     raise TypeError("only numeric Stata variables allowed")
 TypeError: only numeric Stata variables allowed}
 {\smallskip}
-. st_sdata(0,0)
+{\bftt{>>>}}. st_sdata(0, 0)
 [['AMC Concord']]
 {\smallskip}
-. st_sdata(range(0,74,10), 0)
+{\bftt{>>>}}. st_sdata(range(0,74,10), 0)
 [['AMC Concord'], ['Cad. Deville'], ['Dodge Diplomat'], ['Merc. Marquis'], ['Ol
 > ds Toronado'], ['Pont. Phoenix'], ['Honda Accord'], ['VW Diesel']]
 {\smallskip}
-. for row in st_sdata(range(0,74,10), 0): print(row)
+{\bftt{>>>}}. for row in st_sdata(range(0,74,10), 0): print(row)
 ['AMC Concord']
 ['Cad. Deville']
 ['Dodge Diplomat']
@@ -1565,20 +1565,20 @@ TypeError: only numeric Stata variables allowed}
 ['Honda Accord']
 ['VW Diesel']
 {\smallskip}
-. st_data(0,1)
+{\bftt{>>>}}. st_data(0, 1)
 [[4099.0]]
 {\smallskip}
-. st_data(0, range(1,12,3))
+{\bftt{>>>}}. st_data(0, range(1,12,3))
 [[4099.0, 2.5, 186.0, 3.5799999237060547]]
 {\smallskip}
-. st_data(range(0,74,10), range(1,12,3))
+{\bftt{>>>}}. st_data(range(0,74,10), range(1,12,3))
 [[4099.0, 2.5, 186.0, 3.5799999237060547], [11385.0, 4.0, 221.0, 2.279999971389
 > 7705], [4010.0, 4.0, 206.0, 2.4700000286102295], [6165.0, 3.5, 212.0, 2.25999
 > 9990463257], [10371.0, 3.5, 206.0, 2.4100000858306885], [4424.0, 3.5, 203.0, 
 > 3.0799999237060547], [5799.0, 3.0, 172.0, 3.049999952316284], [5397.0, 3.0, 1
 > 55.0, 3.7799999713897705]]
 {\smallskip}
-. for row in st_data(range(0,74,10), range(1,12,3)): print(row)
+{\bftt{>>>}}. for row in st_data(range(0,74,10), range(1,12,3)): print(row)
 [4099.0, 2.5, 186.0, 3.5799999237060547]
 [11385.0, 4.0, 221.0, 2.2799999713897705]
 [4010.0, 4.0, 206.0, 2.4700000286102295]
@@ -1588,7 +1588,7 @@ TypeError: only numeric Stata variables allowed}
 [5799.0, 3.0, 172.0, 3.049999952316284]
 [5397.0, 3.0, 155.0, 3.7799999713897705]
 {\smallskip}
-. st_store(range(0,74,10), range(1,12,3), [[None]*3])
+{\bftt{>>>}}. st_store(range(0,74,10), range(1,12,3), [[None]*3])
 {\color{red}Traceback (most recent call last):
   File "<string>", line 1, in <module>
   File "stata.py", line 226, in st_store
@@ -1597,7 +1597,7 @@ TypeError: only numeric Stata variables allowed}
     raise ValueError("length of value does not match number of rows")
 ValueError: length of value does not match number of rows}
 {\smallskip}
-. st_store(range(0,74,10), range(1,12,3), [[None]*3]*8)
+{\bftt{>>>}}. st_store(range(0,74,10), range(1,12,3), [[None]*3]*8)
 {\color{red}Traceback (most recent call last):
   File "<string>", line 1, in <module>
   File "stata.py", line 226, in st_store
@@ -1606,9 +1606,9 @@ ValueError: length of value does not match number of rows}
     raise ValueError("inner dimensions do not match number of columns")
 ValueError: inner dimensions do not match number of columns}
 {\smallskip}
-. st_store(range(0,74,10), range(1,12,3), [[None]*4]*8)
+{\bftt{>>>}}. st_store(range(0,74,10), range(1,12,3), [[None]*4]*8)
 {\smallskip}
-. for row in st_data(range(0,74,10), range(1,12,3)): print(row)
+{\bftt{>>>}}. for row in st_data(range(0,74,10), range(1,12,3)): print(row)
 [., ., ., .]
 [., ., ., .]
 [., ., ., .]
@@ -1618,7 +1618,7 @@ ValueError: inner dimensions do not match number of columns}
 [., ., ., .]
 [., ., ., .]
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 {\smallskip}
 . list price head length gear if mod(_n-1, 10) == 0
@@ -1639,14 +1639,14 @@ ValueError: inner dimensions do not match number of columns}
 {\smallskip}
 . python
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. from stata_missing import MISSING_VALS as mvs
+{\bftt{>>>}}. from stata_missing import MISSING_VALS as mvs
 {\smallskip}
-. [ 0, 1, mvs[1], mvs[4] ]
+{\bftt{>>>}}. [ 0, 1, mvs[1], mvs[4] ]
 [0, 1, .a, .d]
 {\smallskip}
-. st_store(range(0,74,10), range(1,12,3), [ [0, 1, mvs[1], mvs[4]] ]*8)
+{\bftt{>>>}}. st_store(range(0,74,10), range(1,12,3), [ [0, 1, mvs[1], mvs[4]] ]*8)
 {\smallskip}
-. for row in st_data(range(0,74,10), range(1,12,3)): print(row)
+{\bftt{>>>}}. for row in st_data(range(0,74,10), range(1,12,3)): print(row)
 [0.0, 1.0, .a, .d]
 [0.0, 1.0, .a, .d]
 [0.0, 1.0, .a, .d]
@@ -1656,7 +1656,7 @@ ValueError: inner dimensions do not match number of columns}
 [0.0, 1.0, .a, .d]
 [0.0, 1.0, .a, .d]
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 {\smallskip}
 . list price head length gear if mod(_n-1, 10) == 0
@@ -1692,7 +1692,7 @@ This example repeats part of the previous example, but uses string indices for S
 {\smallskip}
 . python
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. st_data(0, "make")
+{\bftt{>>>}}. st_data(0, "make")
 {\color{red}Traceback (most recent call last):
   File "<string>", line 1, in <module>
   File "stata.py", line 20
@@ -1700,18 +1700,18 @@ This example repeats part of the previous example, but uses string indices for S
     raise TypeError("only numeric Stata variables allowed")
 TypeError: only numeric Stata variables allowed}
 {\smallskip}
-. st_sdata(0, "make")
+{\bftt{>>>}}. st_sdata(0, "make")
 [['AMC Concord']]
 {\smallskip}
-. st_sdata(range(0,74,10), 0)
+{\bftt{>>>}}. st_sdata(range(0,74,10), 0)
 [['AMC Concord'], ['Cad. Deville'], ['Dodge Diplomat'], ['Merc. Marquis'], ['Ol
 > ds Toronado'], ['Pont. Phoenix'], ['Honda Accord'], ['VW Diesel']]
 {\smallskip}
-. st_sdata(range(0,74,10), "make")
+{\bftt{>>>}}. st_sdata(range(0,74,10), "make")
 [['AMC Concord'], ['Cad. Deville'], ['Dodge Diplomat'], ['Merc. Marquis'], ['Ol
 > ds Toronado'], ['Pont. Phoenix'], ['Honda Accord'], ['VW Diesel']]
 {\smallskip}
-. for row in st_sdata(range(0,74,10), "make"): print(row)
+{\bftt{>>>}}. for row in st_sdata(range(0,74,10), "make"): print(row)
 ['AMC Concord']
 ['Cad. Deville']
 ['Dodge Diplomat']
@@ -1721,25 +1721,25 @@ TypeError: only numeric Stata variables allowed}
 ['Honda Accord']
 ['VW Diesel']
 {\smallskip}
-. st_data(0, "price")
+{\bftt{>>>}}. st_data(0, "price")
 [[4099.0]]
 {\smallskip}
-. st_data(0, "price headroom length gear_ratio")
+{\bftt{>>>}}. st_data(0, "price headroom length gear_ratio")
 [[4099.0, 2.5, 186.0, 3.5799999237060547]]
 {\smallskip}
-. st_data(0, "price headroom length gear_ratio") == st_data(0, "pr he le ge")
+{\bftt{>>>}}. st_data(0, "price headroom length gear_ratio") == st_data(0, "pr he le ge")
 True
 {\smallskip}
-. st_data(0, "price head length gear") == st_data(0, ("pr", "he", "le", "ge"))
+{\bftt{>>>}}. st_data(0, "price head length gear") == st_data(0, ("pr", "he", "le", "ge"))
 True
 {\smallskip}
-. st_data(0, "price head length gear") == st_data(0, ("pr he", "le ge"))
+{\bftt{>>>}}. st_data(0, "price head length gear") == st_data(0, ("pr he", "le ge"))
 True
 {\smallskip}
-. st_data(0, "price head length gear") == st_data(0, ("pr", 4, 7, "ge"))
+{\bftt{>>>}}. st_data(0, "price head length gear") == st_data(0, ("pr", 4, 7, "ge"))
 True
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 \end{stlog}
 
@@ -1748,7 +1748,7 @@ True
 
 \subsection{Accessing locals} \label{local_example}
 
-This example begins with defining local and global macros in Stata, then using \lstinline$python.ado$ and the \lstinline$python_plugin$ to access them.
+This example begins with defining local and global macros in Stata, then using \lstinline$python.ado$ and the Python plugin to access them.
 
 \begin{stlog}
 . local a = "a local"
@@ -1757,15 +1757,15 @@ This example begins with defining local and global macros in Stata, then using \
 {\smallskip}
 . python
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. st_local("a")
+{\bftt{>>>}}. st_local("a")
 ''
 {\smallskip}
-. st_global("b")
+{\bftt{>>>}}. st_global("b")
 'a global'
 {\smallskip}
-. st_local("a", "modified")
+{\bftt{>>>}}. st_local("a", "modified")
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 {\smallskip}
 . di "`a'"
@@ -1781,15 +1781,15 @@ The attempt to access and modify a local defined outside of \lstinline$python.ad
 {\smallskip}
 . plugin call python_plugin
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. st_local("a")
+{\bftt{>>>}}. st_local("a")
 'a local'
 {\smallskip}
-. st_global("b")
+{\bftt{>>>}}. st_global("b")
 'a global'
 {\smallskip}
-. st_local("a", "modified")
+{\bftt{>>>}}. st_local("a", "modified")
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 {\smallskip}
 . di "`a'"
@@ -1802,7 +1802,7 @@ modified
 
 \subsection{Using \lstinline{st_view}} \label{st_view_example}
 
-We demonstrate use of \lstinline{st_view} with the \lstinline{auto} data set. Later we'll be assigning new values, so we use a copy of the data set. To make the output less wide we drop some Stata variables.
+This example demonstrates use of \lstinline{st_view} with the \lstinline{auto} data set. Here we use a copy of the auto data set because we'll be assigning new values. We drop some data variables to make the output less wide.
 
 \begin{stlog}
 . clear
@@ -1814,9 +1814,12 @@ We demonstrate use of \lstinline{st_view} with the \lstinline{auto} data set. La
 {\smallskip}
 . python
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. v = st_view()
+{\bftt{>>>}}. v = st_view()
 {\smallskip}
-. v
+{\bftt{>>>}}. v
+<stata.StataView object at 0x0000000002834C88>
+{\smallskip}
+{\bftt{>>>}}. v.list()
 {\smallskip}
   obs: 74
  vars:  8
@@ -1839,15 +1842,15 @@ We demonstrate use of \lstinline{st_view} with the \lstinline{auto} data set. La
 
 The last output has been shortened to save space; all 74 rows appear in the Stata output. If you want to see less output, or if you want select a subset of the data, you'll want to use indexing.
 
-Indexing is done by appending [\textit{rows}, \textit{cols}] to the \lstinline{st_view} instance, where \textit{rows} and \textit{cols} are either integers or an iterable of integers (tuple, list, etc.) or a slice (e.g., 3:10 to denote $3, 4, \ldots, 10$ or 3:10:2 to denote $3, 5, 7, 9$). The \textit{cols} index is optional, but the separating comma is not optional, with or without \textit{cols}. 
+Indexing is done by appending [\textit{rows}, \textit{cols}] to the \lstinline{st_view} instance, where \textit{rows} and \textit{cols} are either integers, iterable of integers (tuple, list, etc.), or slices (e.g., 3:10 to denote $3, 4, \ldots, 10$ or 3:10:2 to denote $3, 5, 7, 9$). The \textit{cols} index is optional, but the separating comma is not optional, with or without \textit{cols}. 
 
 The syntax for slices is \textit{start}:\textit{stop}:\textit{step} and denotes ``every \textit{step}$^{\text{th}}$ value beginning at \textit{start}, up to, but not including, \textit{stop}''. For example, \lstinline{4:16:3} denotes $4, 7, 10, 13$, but not 16. Any of \textit{start}, \textit{stop}, \textit{step} can be omitted, and if \textit{step} is omitted then the second colon can also be omitted. An omitted \textit{start} is taken to be zero. If \textit{stop} is omitted the slice extends as far as possible in the context. An omitted \textit{step} is taken to be 1. For example,
 \lstinline{4::} is equivalent to \lstinline{4:} is equivalent to \lstinline{4:}(\textit{max}$ + 1$)\lstinline{:1}.
 
-\textbf{Indexing an object returned by \lstinline{st_view} always returns another object of the same type}. To get values out of an \lstinline{st_view} instance, use \textit{instance}\lstinline{.toList()} or \textit{instance}\lstinline{.get(}\textit{row,col}\lstinline{)}.
+\textbf{Indexing an object returned by \lstinline{st_view} always returns another object of the same type}. To get values out of an \lstinline{st_view} instance, use \textit{instance}\lstinline{.to_list()} or \textit{instance}\lstinline{.get(}\textit{row,col}\lstinline{)}.
 
 \begin{stlog}
-. v[::6, ::2]
+{\bftt{>>>}}. v[::6, ::2].list()
 {\smallskip}
   obs: 13
  vars:  4
@@ -1867,7 +1870,7 @@ r60 Honda Accor        25         3      2240
 r66 Toyota Celi        18       2.5      2410
 r72 VW Scirocco        25         2      1990
 {\smallskip}
-. v[0,0]
+{\bftt{>>>}}. v[0,0].list()
 {\smallskip}
   obs: 1
  vars: 1
@@ -1875,7 +1878,7 @@ r72 VW Scirocco        25         2      1990
             c0
 r0 AMC Concord
 {\smallskip}
-. v[0, ]
+{\bftt{>>>}}. v[0, ].list()
 {\smallskip}
   obs: 1
  vars: 8
@@ -1883,7 +1886,7 @@ r0 AMC Concord
             c0       c1       c2       c3       c4       c5       c6       c7
 r0 AMC Concord     4099       22        3      2.5       11     2930      186
 {\smallskip}
-. v[(0,1,2), (0,1,2)]
+{\bftt{>>>}}. v[(0,1,2), (0,1,2)].list()
 {\smallskip}
   obs: 3
  vars: 3
@@ -1893,7 +1896,7 @@ r0 AMC Concord      4099        22
 r1   AMC Pacer      4749        17
 r2  AMC Spirit      3799        22
 {\smallskip}
-. v[ :3, :3]
+{\bftt{>>>}}. v[:3, :3].list()
 {\smallskip}
   obs: 3
  vars: 3
@@ -1903,11 +1906,11 @@ r0 AMC Concord      4099        22
 r1   AMC Pacer      4749        17
 r2  AMC Spirit      3799        22
 {\smallskip}
-. v[ :3, :3] = [["A", "not num", 2.02], ["B", 11.11, 12.12], ["C", 21.21, 22.22
+{\bftt{>>>}}. v[:3, :3] = [["A", "not num", 2.02], ["B", 11.11, 12.12], ["C", 21.21, 22.22
 > ]]
 {\color{red}Traceback (most recent call last):
   File "<string>", line 1, in <module>
-  File "stata.py", line 533, in __setitem__
+  File "stata.py", line 586, in __setitem__
     setters[col](row, col, value[i][j])
 TypeError: set value should be float, None, or a missing value}
 \end{stlog}
@@ -1917,9 +1920,9 @@ TypeError: set value should be float, None, or a missing value}
 The error was caused by trying to assign a string value to a numeric Stata variable.
 
 \begin{stlog}
-. v[ :3, :3] = [["A", 1.01, 2.02], ["B", 11.11, 12.12], ["C", 21.21, 22.22]]
+{\bftt{>>>}}. v[:3, :3] = [["A", 1.01, 2.02], ["B", 11.11, 12.12], ["C", 21.21, 22.22]]
 {\smallskip}
-. v[ :3, :3]
+{\bftt{>>>}}. v[:3, :3]
 {\smallskip}
   obs: 3
  vars: 3
@@ -1935,11 +1938,11 @@ r2           C        21        22
 The Stata variables in columns 1 and 2 (Stata columns 2 and 3) are \lstinline{price} and \lstinline{mpg}, which are both integer type. When floating point values are assigned to these columns through the plugin, their values are truncated (see \S\ref{no_type_change_example}).
 
 \begin{stlog}
-. from stata_missing import MISSING_VALS as mvs
+{\bftt{>>>}}. from stata_missing import MISSING_VALS as mvs
 {\smallskip}
-. v[ 1:3, 1:3] = [[mvs[0], mvs[1]], [mvs[2], mvs[3]]]
+{\bftt{>>>}}. v[1:3, 1:3] = [[mvs[0], mvs[1]], [mvs[2], mvs[3]]]
 {\smallskip}
-. v[ :3, :3]
+{\bftt{>>>}}. v[:3, :3].list()
 {\smallskip}
   obs: 3
  vars: 3
@@ -1949,7 +1952,7 @@ r0           A         1         2
 r1           B         .        .a
 r2           C        .b        .c
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 {\smallskip}
 . list make-mpg in 1/3
@@ -1991,18 +1994,21 @@ r5        15         4         4
 {\smallskip}
 . python
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. m = st_matrix("m")
+{\bftt{>>>}}. m = st_matrix("m")
 {\smallskip}
-. m.nRows
+{\bftt{>>>}}. m.nrows
 5
 {\smallskip}
-. m.rows
+{\bftt{>>>}}. m.rows
 (0, 1, 2, 3, 4)
 {\smallskip}
-. m.nCols
+{\bftt{>>>}}. m.ncols
 3
 {\smallskip}
-. m
+{\bftt{>>>}}. m
+<stata.StataMatrix object at 0x00000000035BC2B0>
+{\smallskip}
+{\bftt{>>>}}. m.list()
 {\smallskip}
 m[5,3]
            c0         c1         c2
@@ -2012,62 +2018,65 @@ r2         22          .          3
 r3         20          3        4.5
 r4         15          4          4
 {\smallskip}
-. m.toList()
+. m.to_list()
 [[22.0, 3.0, 2.5], [17.0, 3.0, 3.0], [22.0, ., 3.0], [20.0, 3.0, 4.5], [15.0, 4
 > .0, 4.0]]
 \end{stlog}
 
 \medskip
 
-An instance of \lstinline{st_matrix} is mostly just a view onto the values in Stata. If you want a static list of values, use the \texttt{toList()} method, which returns a list of lists (one sub-list for each row), or the \lstinline{get(}\textit{row,col}\lstinline{)} method, which returns a single entry.
+An instance of \lstinline{st_matrix} is mostly just a view onto the Stata matrix. If you want a static list of values, use the \lstinline{to_list()} method, which returns a list of lists (one sub-list for each row), or the \lstinline{get(}\textit{row,col}\lstinline{)} method, which returns a single entry.
 \smallskip
 
-The next parts of the example show the use of indexing to retrieve and set values in a sub-matrix. As with \lstinline{st_view}, an \lstinline{st_matrix} instance is indexed by appending [\textit{rows}, \textit{cols}] to it, where \textit{rows} and \textit{cols} are either integers or an iterable of integers (tuple, list, etc.) or a slice (for more info on slices, see example \S\ref{st_view_example}). The \textit{cols} index is optional, but the separating comma is not optional, with or without \textit{cols}. And, as with \lstinline{st_view}, \textbf{indexing an object returned by \lstinline{st_matrix} always returns the same kind of object}.
+The next parts of the example show the use of indexing to retrieve and set values in a sub-matrix. As with \lstinline{st_view}, an \lstinline{st_matrix} instance is indexed by appending [\textit{rows}, \textit{cols}] to it, where \textit{rows} and \textit{cols} are either integers, iterable of integers (tuple, list, etc.), or slices (for more info on slices, see example \S\ref{st_view_example}). The \textit{cols} index is optional, but the separating comma is not optional, with or without \textit{cols}. And, as with \lstinline{st_view}, \textbf{indexing an object returned by \lstinline{st_matrix} always returns the same kind of object}.
 
 \begin{stlog}
-. m[0,0]
+{\bftt{>>>}}. m[0,0]
+<stata.StataMatrix object at 0x00000000036019B0>
+{\smallskip}
+{\bftt{>>>}}. m[0,0].list()
 {\smallskip}
 m[1,1]
            c0
 r0         22
 {\smallskip}
-. m[2,1]
+{\bftt{>>>}}. m[2,1].list()
 {\smallskip}
 m[1,1]
            c1
 r2          .
 {\smallskip}
-. m.get(2,1)
+{\bftt{>>>}}. m.get(2,1)
 .
 {\smallskip}
-. type(m.get(2,1))
+{\bftt{>>>}}. type(m.get(2,1))
 <class 'stata_missing.MissingValue'>
 {\smallskip}
-. from stata_missing import MISSING_VALS as mvs
+{\bftt{>>>}}. from stata_missing import MISSING_VALS as mvs
 {\smallskip}
-. m[ (0,4), (0, 2) ]
+{\bftt{>>>}}. m[(0,4), (0,2)].list()
 {\smallskip}
 m[2,2]
            c0         c2
 r0         22        2.5
 r4         15          4
 {\smallskip}
-. mvs[1]
+{\bftt{>>>}}. mvs[1]
 .a
 {\smallskip}
-. m[ (0,4), (0, 2) ] = mvs[1]
+{\bftt{>>>}}. m[(0,4), (0,2)] = mvs[1]
 {\color{red}Traceback (most recent call last):
   File "<string>", line 1, in <module>
   File "stata.py", line 796, in __setitem__
     raise ValueError("length of value does not match number of rows")
 ValueError: length of value does not match number of rows}
 {\smallskip}
-. [ [ mvs[1] ]*2 ]*2
+{\bftt{>>>}}. [ [mvs[1]]*2 ]*2
 [[.a, .a], [.a, .a]]
 {\smallskip}
-. m[ (0,4), (0, 2) ] = [ [ mvs[1] ]*2 ]*2
+{\bftt{>>>}}. m[(0,4), (0,2)] = [ [mvs[1]]*2 ]*2
 {\smallskip}
-. m
+{\bftt{>>>}}. m.list()
 {\smallskip}
 m[5,3]
            c0         c1         c2
@@ -2077,9 +2086,9 @@ r2         22          .          3
 r3         20          3        4.5
 r4         .a          4         .a
 {\smallskip}
-. m[ (1,3), (0, 2) ] = [ [ 10101 ]*2 ]*2
+{\bftt{>>>}}. m[(1,3), (0,2)] = [ [10101]*2 ]*2
 {\smallskip}
-. m
+{\bftt{>>>}}. m.list()
 {\smallskip}
 m[5,3]
            c0         c1         c2
@@ -2089,9 +2098,9 @@ r2         22          .          3
 r3      10101          3      10101
 r4         .a          4         .a
 {\smallskip}
-. m[ :, 1 ] = [ [ 0.5 ] ]*5
+{\bftt{>>>}}. m[:, 1] = [[0.5]]*5
 {\smallskip}
-. m
+{\bftt{>>>}}. m.list()
 {\smallskip}
 m[5,3]
            c0         c1         c2
@@ -2101,7 +2110,7 @@ r2         22         .5          3
 r3      10101         .5      10101
 r4         .a         .5         .a
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 {\smallskip}
 . matrix list m
@@ -2122,7 +2131,7 @@ r5        .a        .5        .a
 
 \subsection{Using \lstinline$st_mirror$} \label{st_mirror_example}
 
-Similar to \lstinline{st_view}, \lstinline{st_mirror} is used for accessing values from currently loaded data set. In fact, the value returned from \lstinline{st_mirror} (an instance of \lstinline$StataMirror$) inherits much of its functionality from the \lstinline$StataView$ class (the class of the return value of \lstinline{st_view}). The main purpose of adding \lstinline{st_mirror} is to allows quick access to Stata variables. If \lstinline{m = st_mirror()}, the variables of the current data set can be accessed as \lstinline{m.varname_}, i.e., as an attribute with the variable name plus an underscore.
+Similar to \lstinline{st_view}, \lstinline{st_mirror} is used for accessing values from the currently loaded data set. In fact, the value returned from \lstinline{st_mirror} (an instance of \lstinline$StataMirror$) inherits much of its functionality from the \lstinline$StataView$ class (the class of the return value of \lstinline{st_view}). The main purpose of adding \lstinline{st_mirror} is to allows quick access to Stata variables. If \lstinline{m = st_mirror()}, the variables of the current data set can be accessed as \lstinline{m.varname_}, i.e., as an attribute with the variable name plus an underscore.
 
 \begin{stlog}
 . clear
@@ -2303,7 +2312,7 @@ True
 
 \subsection{\lstinline$st_matrix$, \lstinline$st_view$, and \lstinline$st_mirror$ after changes in Stata} \label{after_changes_example}
 
-The objects returned from \lstinline{st_view} and \lstinline{st_matrix} are not aware of changes made to Stata matrices and the current data set. The following example demonstrates this for \lstinline{st_matrix}.
+The object returned from \lstinline{st_matrix} is not aware of changes made to Stata matrices, and the object returned by \lstinline{st_view} and is not aware of changes made to the current data set. The following example demonstrates this for \lstinline{st_matrix}.
 
 \begin{stlog}
 . clear
@@ -2325,9 +2334,9 @@ r5        15         4         4
 {\smallskip}
 . python
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. m = st_matrix("m")
+{\bftt{>>>}}. m = st_matrix("m")
 {\smallskip}
-. m
+{\bftt{>>>}}. m.list()
 {\smallskip}
 m[5,3]
            c0         c1         c2
@@ -2337,10 +2346,10 @@ r2         22          .          3
 r3         20          3        4.5
 r4         15          4          4
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 {\smallskip}
-. mkmat mpg -weight in 1/5, matrix(m)
+. mkmat mpg - weight in 1/5, matrix(m)
 {\smallskip}
 . matrix list m
 {\smallskip}
@@ -2354,7 +2363,7 @@ r5        15         4         4        20      4080
 {\smallskip}
 . python
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. m
+{\bftt{>>>}}. m.list()
 {\smallskip}
 m[5,3]
            c0         c1         c2
@@ -2364,7 +2373,7 @@ r2         22          .          3
 r3         20          3        4.5
 r4         15          4          4
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 {\smallskip}
 . mkmat mpg in 1/5, matrix(m)
@@ -2381,7 +2390,7 @@ r5   15
 {\smallskip}
 . python
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. m
+{\bftt{>>>}}. m.list()
 {\color{red}Traceback (most recent call last):
   File "<string>", line 1, in <module>
   File "stata.py", line 648, in __repr__
@@ -2392,7 +2401,7 @@ r5   15
     " ".join(st_format(fmt, st_matrix_el(matname, r, c)) for c in colNums)
 IndexError: matrix col number out of range}
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \end{stlog}
 
 \medskip
@@ -2497,7 +2506,7 @@ However, this awareness is not transmitted to objects derived by subscripting. A
 
 \subsection{\lstinline$st_matrix$, \lstinline$st_view$, and \lstinline$st_mirror$ objects are iterable} \label{iterable}
 
-Objects returned by \lstinline{st_matrix} are iterable over rows and objects returned by \lstinline{st_view} and \lstinline{st_mirror} are iterable over observations. What this means, in particular, is that they are easy to traverse in \lstinline{for} loops. The object returned with each iteration is a tuple of the values in the row or observation.
+Objects returned by \lstinline{st_matrix} are iterable over rows, and objects returned by \lstinline{st_view} and \lstinline{st_mirror} are iterable over observations. What this means, in particular, is that they are easy to traverse in \lstinline{for} loops. The object returned with each iteration is a tuple of the values in the row or observation.
 
 \begin{stlog}
 . clear
@@ -2509,14 +2518,14 @@ Objects returned by \lstinline{st_matrix} are iterable over rows and objects ret
 {\smallskip}
 . python
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. m = st_matrix("m")
+{\bftt{>>>}}. m = st_matrix("m")
 {\smallskip}
-. import collections
+{\bftt{>>>}}. import collections
 {\smallskip}
-. isinstance(m, collections.Iterable)
+{\bftt{>>>}}. isinstance(m, collections.Iterable)
 True
 {\smallskip}
-. for row in m: print(row)
+{\bftt{>>>}}. for row in m: print(row)
 (4749.0, 17.0, 3.0, 3.0)
 (3799.0, 22.0, ., 3.0)
 (4816.0, 20.0, 3.0, 4.5)
@@ -2525,18 +2534,18 @@ True
 (4453.0, 26.0, ., 3.0)
 (5189.0, 20.0, 3.0, 2.0)
 {\smallskip}
-. for row in m[::2, (0, 0, 1, 1, 2, 2)]: print(row)
+{\bftt{>>>}}. for row in m[::2, (0, 0, 1, 1, 2, 2)]: print(row)
 (4749.0, 4749.0, 17.0, 17.0, 3.0, 3.0)
 (4816.0, 4816.0, 20.0, 20.0, 3.0, 3.0)
 (5788.0, 5788.0, 18.0, 18.0, 3.0, 3.0)
 (5189.0, 5189.0, 20.0, 20.0, 3.0, 3.0)
 {\smallskip}
-. v = st_view()
+{\bftt{>>>}}. v = st_view()
 {\smallskip}
-. isinstance(v, collections.Iterable)
+{\bftt{>>>}}. isinstance(v, collections.Iterable)
 True
 {\smallskip}
-. for row in v[::8, :5]: print(row)
+{\bftt{>>>}}. for row in v[::8, :5]: print(row)
 ('AMC Concord', 4099.0, 22.0, 3.0, 2.5)
 ('Buick Riviera', 10372.0, 16.0, 3.0, 3.5)
 ('Chev. Monte Carlo', 5104.0, 22.0, 2.0, 2.0)
@@ -2548,7 +2557,7 @@ True
 ('Renault Le Car', 3895.0, 26.0, 3.0, 3.0)
 ('VW Scirocco', 6850.0, 25.0, 4.0, 2.0)
 {\smallskip}
-. for row in v[::8, :3]: print("{\lbr}0:>18{\rbr} {\lbr}1:>8{\rbr} {\lbr}2:>5{\rbr}".format(*row))
+{\bftt{>>>}}. for row in v[::8, :3]: print("{\lbr}0:>18{\rbr} {\lbr}1:>8{\rbr} {\lbr}2:>5{\rbr}".format(*row))
        AMC Concord   4099.0  22.0
      Buick Riviera  10372.0  16.0
  Chev. Monte Carlo   5104.0  22.0
@@ -2560,7 +2569,7 @@ True
     Renault Le Car   3895.0  26.0
        VW Scirocco   6850.0  25.0
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 \end{stlog}
 
@@ -2727,16 +2736,16 @@ In Python, the label \lstinline$exit$ can be reassigned. If that is done in a ty
 \begin{stlog}
 . python
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. exit = "blah"
+{\bftt{>>>}}. exit = "blah"
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 {\smallskip}
 . python
 \HLI{49} python (type {\bftt{exit()}} to exit) 
-. def exit(): return "will it exit?"
+{\bftt{>>>}}. def exit(): return "will it exit?"
 {\smallskip}
-. exit()
+{\bftt{>>>}}. exit()
 \HLI{79}
 \end{stlog}
 
