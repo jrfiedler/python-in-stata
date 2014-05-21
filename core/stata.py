@@ -377,7 +377,7 @@ def st_sstore(obsnums, vars, values):
     if not all(st_isstrvar(v) for v in vars):
         raise TypeError("only string Stata variables allowed")
     
-    for obs, val_row in zip(obsnums, vals):
+    for obs, val_row in zip(obsnums, values):
         for col, val in zip(vars, val_row):
             _st_sstore(obs, col, val)
 
@@ -634,7 +634,7 @@ class StataView():
         if not st_isfmt(fmt):
             raise ValueError(fmt + " is not a valid Stata format")
             
-        if st_isstrfmt(fmt) != st_isstrvar(self._colnumnums[colnum]):
+        if st_isstrfmt(fmt) != st_isstrvar(self._colnums[colnum]):
             raise ValueError("format does not match Stata variable type")
         
         self._formats[colnum] = fmt
