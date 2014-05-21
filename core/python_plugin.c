@@ -1054,114 +1054,247 @@ st_format(PyObject *self, PyObject *args)
 }
 
 static PyMethodDef StataMethods[] = {
-	{"_st_display", _st_display, METH_VARARGS,
-	 "display in results window; smcl is interpreted\n"
-	 "input: single str\n"
-	 "returns: None"},
-	{"_st_error", _st_error, METH_VARARGS,
-	 "display error message in results window; smcl is interpreted\n"
-	 "input: single str\n"
-	 "returns: None"},
-	{"_st_data", _st_data, METH_VARARGS,
-	 "retrieve value in obs index i, var index j\n"
-	 "input: int i, int j\n"
-	 "returns: float"},
-	{"_st_store", _st_store, METH_VARARGS,
-	 "in obs index i, var index j, put float v\n"
-	 "input: int i, int j, and float (or int) v\n"
-	 "returns: None"},
-	{"_st_sdata", _st_sdata, METH_VARARGS,
-	 "retrieve value in obs index i, var index j\n"
-	 "input: int i, int j\n"
-	 "returns: str"},
-	{"_st_sstore", _st_sstore, METH_VARARGS,
-	 "in obs index i, var index j, put str s\n"
-	 "input: int i, int j, and str s\n"
-	 "returns None"},
-	{"st_nvar", st_nvar, METH_VARARGS,
-	 "get number of variables in the dataset loaded in Stata"},
-	{"st_nobs", st_nobs, METH_VARARGS,
-	 "get number of observations in the dataset loaded in Stata"},
-	{"st_ifobs", st_ifobs, METH_VARARGS,
-	 "determine whether 'if' condition is true in given observation\n"
-	 "if no 'if' condition specified, returns True for all observations\n"
-	 "input: int\n"
-	 "returns: boolean"},
-	{"st_in1", st_in1, METH_VARARGS,
-	 "get gebbing of 'in' range when plugin was called;\n"
-	 "if no 'in' range specified, returns zero"},
-	{"st_in2", st_in2, METH_VARARGS,
-	 "get end of 'in' range plus one when plugin was called;\n"
-	 "if no 'in' range specified, returns number of observations in dataset"},
-	{"st_matrix_el", st_matrix_el, METH_VARARGS,
-	 "with 3 arguments:\n"
-		"\tretrieve value in given matrix row and column\n"
-		"\tinput: str matrix name, int row, int column\n"
-		"\treturns: float\n"
-	 "with 4 arguments:\n"
-		"\tset value in given matrix row and column\n"
-		"\tinput: str matrix name, int row, int column, and numeric value\n"
-		"\treturns: None"},
 	{"st_cols", st_cols, METH_VARARGS,
-	 "get number of columns in given matrix\n"
-	 "input: str matrix name\n"
-	 "returns: int"},
-	{"st_rows", st_rows, METH_VARARGS,
-	 "get number of rows in given matrix\n"
-	 "input: str matrix name\n"
-	 "returns: int"},
-	{"st_local", st_local, METH_VARARGS,
-	 "with 1 argument:\n"
-		"\tretrieve str in given local\n"
-		"\tinput: str name\n"
-		"\treturns: str\n"
-	 "with 2 arguments:\n"
-		"\tset local to given value\n"
-		"\tinput: str name and str value\n"
-		"\treturns: None"},
+	 "Get number of columns in given matrix.\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "matname : str\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "int"},
+	{"_st_data", _st_data, METH_VARARGS,
+	 "Retrieve value in given observation and Stata numeric variable\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "obsnum : int\n"
+	 "varnum : int\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "float or MissingValue instance"},
+	{"_st_display", _st_display, METH_VARARGS,
+	 "Display text in results window.\n"
+	 "Any included smcl is interpreted.\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "text : str\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "None"},
+	{"_st_error", _st_error, METH_VARARGS,
+	 "Display text as error message in results window.\n"
+	 "Any included smcl is interpreted.\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "text : str\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "None"},
+	{"st_format", st_format, METH_VARARGS,
+	 "Return string representation of value, according to given fmt.\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "fmt : str\n"
+	 "value : int, float, MissingValue instance, or None\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "str"},
 	{"st_global", st_global, METH_VARARGS,
 	 "with 1 argument:\n"
-		"\tretrieve str in given global\n"
-		"\tinput: str name\n"
-		"\treturns: str\n"
+	 "    Retrieve contents of given global macro\n\n"
+	 "    Parameters\n"
+	 "    ----------\n"
+	 "    macroname : str\n\n"
+	 "    Returns\n"
+	 "    -------\n"
+	 "    str\n\n"
 	 "with 2 arguments:\n"
-		"\tset global to given value\n"
-		"\tinput: str name and str value\n"
-		"\treturns: None"},
+	 "    Set contents of given global macro\n\n"
+	 "    Parameters\n"
+	 "    ----------\n"
+	 "    macroname : str\n"
+	 "    value : str\n\n"
+	 "    Returns\n"
+	 "    -------\n"
+	 "    None"},
+	{"st_ifobs", st_ifobs, METH_VARARGS,
+	 "Query the `if` condition (specified when Python was\n"
+	 "invoked) for the given observation. If no `if`\n"
+	 "condition was specified, returns True for all \n"
+	 "observations.\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "obsnum : int\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "bool"},
+	{"st_in1", st_in1, METH_VARARGS,
+	 "Get the first index of the `in` range (specified when\n"
+	 "Python was invoked). If no `in` range was specified,\n"
+	 "returns zero.\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "int"},
+	{"st_in2", st_in2, METH_VARARGS,
+	 "Get the second index of the `in` range (specified when\n"
+	 "Python was invoked), plus one. If no `in` range was\n"
+	 "specified, returns largest observation index plus one.\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "int"},
+	{"st_ismissing", st_ismissing, METH_VARARGS,
+	 "Determine if the given value is considered a missing value.\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "value : any Python object\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "bool"},
+	{"st_isnumvar", st_isnumvar, METH_VARARGS,
+	 "Determine if Stata variable is numeric.\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "var : int or str\n"
+	 "    integers denote column numbers\n"
+     "    strings should be Stata variable names or\n"
+     "      unambiguous abbreviations\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "boolean"},
+	{"st_isstrvar", st_isstrvar, METH_VARARGS,
+	 "Determine if Stata variable is string.\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "var : int or str\n"
+	 "    integers denote column numbers\n"
+     "    strings should be Stata variable names or\n"
+     "      unambiguous abbreviations\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "boolean"},
+	{"st_local", st_local, METH_VARARGS,
+	 "with 1 argument:\n"
+	 "    Retrieve contents of given local macro\n\n"
+	 "    Parameters\n"
+	 "    ----------\n"
+	 "    macroname : str\n\n"
+	 "    Returns\n"
+	 "    -------\n"
+	 "    str\n\n"
+	 "with 2 arguments:\n"
+	 "    Set contents of given local macro\n\n"
+	 "    Parameters\n"
+	 "    ----------\n"
+	 "    macroname : str\n"
+	 "    value : str\n\n"
+	 "    Returns\n"
+	 "    -------\n"
+	 "    None"},
+	{"st_matrix_el", st_matrix_el, METH_VARARGS,
+	 "with 3 arguments:\n"
+	 "    Retrieve value in given matrix row and column\n\n"
+	 "    Parameters\n"
+	 "    ----------\n"
+	 "    matname : str\n"
+	 "    row : int\n"
+	 "    col : int\n\n"
+	 "    Returns\n"
+	 "    -------\n"
+	 "    float or MissingValue instance\n\n"
+	 "with 4 arguments:\n"
+	 "    Set value in given matrix row and column\n\n"
+	 "    Parameters\n"
+	 "    ----------\n"
+	 "    matname : str\n"
+	 "    row : int\n"
+	 "    col : int\n"
+	 "    value : int, float, MissingValue instance, or None\n\n"
+	 "    Returns\n"
+	 "    -------\n"
+	 "    None"},
+	{"st_nobs", st_nobs, METH_VARARGS,
+	 "Get the number of observations in the current Stata data set\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "int"},
 	{"st_numscalar", st_numscalar, METH_VARARGS,
 	 "with 1 argument:\n"
-		"\tretrieve float in given scalar\n"
-		"\tinput: str name\n"
-		"\treturns: float\n"
+	 "    Retrieve contents of given numeric scalar\n\n"
+	 "    Parameters\n"
+	 "    ----------\n"
+	 "    scalarname : str\n\n"
+	 "    Returns\n"
+	 "    -------\n"
+	 "    float or MissingValue instance\n\n"
 	 "with 2 arguments:\n"
-		"\tset scalar to given value\n"
-		"\tinput: str name and float value\n"
-		"\treturns: None"},
-	{"st_isnumvar", st_isnumvar, METH_VARARGS,
-	 "check if variable is numeric\n"
-	 "input: int index -or- str name/abbrev\n"
-	 "returns: boolean"},
-	{"st_isstrvar", st_isstrvar, METH_VARARGS,
-	 "check if variable is string\n"
-	 "input: int index -or- str name/abbrev\n"
-	 "returns: boolean"},
+	 "    Set contents of given numeric scalar\n\n"
+	 "    Parameters\n"
+	 "    ----------\n"
+	 "    scalarname : str\n"
+	 "    value : int, float, MissingValue instance, or None\n\n"
+	 "    Returns\n"
+	 "    -------\n"
+	 "    None"},
+	{"st_nvar", st_nvar, METH_VARARGS,
+	 "Get the number of Stata variables in the current data set\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "int"},
+	{"st_rows", st_rows, METH_VARARGS,
+	 "Get the number of rows in the given matrix\n"
+	 "Parameters\n"
+	 "matname : str\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "int (zero if given matrix is not found)"},
+	{"_st_sdata", _st_sdata, METH_VARARGS,
+	 "Retrieve value in given Stata string variable and observation\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "obsnum : int\n"
+	 "varnum : int\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "str"},
+	{"_st_sstore", _st_sstore, METH_VARARGS,
+	 "Set value in given Stata string variable and observation\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "obsnum : int\n"
+	 "varnum : int\n"
+	 "value : str\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "None"},
+	{"_st_store", _st_store, METH_VARARGS,
+	 "Set value in given Stata numeric variable and observation\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "obsnum : int\n"
+	 "varnum : int\n"
+	 "value : int, float, MissingValue instance, or None\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "None"},
 	{"st_varindex", st_varindex, METH_VARARGS,
-	 "find index of variable with given name or abbreviation\n"
-	 "input: str name/abbrev\n"
-	 "returns: int (>= 0)\n"
-	 "raises: ValueError if abbreviation is invalid or ambiguous"},
+	 "Find the index of the given Stata variable\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "varname : str\n"
+	 "abbr_ok : bool or coercible to bool\n"
+	 "    optional\n"
+	 "    default value is False\n"
+	 "    determines whether `varname` must be full name\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "int"},
 	{"st_varname", st_varname, METH_VARARGS,
-	 "find name of variable at given index\n"
-	 "input: int index (zero-based)\n"
-	 "returns: str name"},
-	{"st_ismissing", st_ismissing, METH_VARARGS,
-	 "determine if Stata considers value missing\n"
-	 "input: any Python object\n"
-	 "returns: boolean"},
-	{"st_format", st_format, METH_VARARGS,
-	 "use given fmt, return string representation of value\n"
-	 "input: str fmt and float (or int) value\n"
-	 "returns: str"},
+	 "Return the name of the Stata variable at the given index\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "varnum : int\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "str"},
 	{NULL, NULL, 0, NULL} /* Sentinel */
 } ;
 

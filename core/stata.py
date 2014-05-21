@@ -72,7 +72,17 @@ sys.stderr = StataError()
 
 
 def st_isfmt(fmt):
-    """check that given str fmt is a valid Stata format"""
+    """Check that given string is a valid Stata format
+        
+    Parameters
+    ----------
+    fmt : str
+    
+    Returns
+    -------
+    bool
+        
+    """
     if not isinstance(fmt, str):
         raise TypeError("given fmt should be str")
     
@@ -112,14 +122,34 @@ def st_isfmt(fmt):
 
 
 def st_isnumfmt(fmt):
-    """determine if given str is a valid Stata numerical format"""
+    """Determine if given string is a valid Stata numeric format.
+        
+    Parameters
+    ----------
+    fmt : str
+    
+    Returns
+    -------
+    bool
+        
+    """
     if not isinstance(fmt, str):
         raise TypeError("function argument should be str")
     return st_isfmt(fmt) and not st_isstrfmt(fmt)
 
 
 def st_isstrfmt(fmt):
-    """determine if given str is a valid Stata string format"""
+    """Determine if given string is a valid Stata string format
+        
+    Parameters
+    ----------
+    fmt : str
+    
+    Returns
+    -------
+    bool
+        
+    """
     if not isinstance(fmt, str):
         raise TypeError("function argument should be str")
     m = STR_FMT_RE.match(fmt)
@@ -130,14 +160,39 @@ def st_isstrfmt(fmt):
 
 
 def st_isname(name):
-    """determine if given str is a valid Stata name"""
+    """Determine if given string is a valid Stata name
+    
+    Parameters
+    ----------
+    name : str
+    
+    Returns
+    -------
+    bool
+    
+    Note
+    ----
+    To check for a valid local macro name, use `st_islmname`.
+    To check for a valid Stata variable name, use `st_isvarname`.
+    
+    """
     if not isinstance(name, str):
         raise TypeError("function argument should be str")
     return True if VALID_NAME_RE.match(name) else False
 
 
 def st_isvarname(name):
-    """determine if given str is a valid Stata variable name"""
+    """Determine if given string is a valid Stata variable name
+    
+    Parameters
+    ----------
+    name : str
+    
+    Returns
+    -------
+    bool
+    
+    """
     if not isinstance(name, str):
         raise TypeError("function argument should be str")
     if name in RESERVED or STRING_TYPES_RE.match(name): return False
@@ -145,7 +200,17 @@ def st_isvarname(name):
 
 
 def st_islmname(name):
-    """determine if given str is a valid local macro name"""
+    """Determine if given string is a valid local macro name.
+    
+    Parameters
+    ----------
+    name : str
+    
+    Returns
+    -------
+    bool
+    
+    """
     if not isinstance(name, str):
         raise TypeError("function argument should be str")
     return True if VALID_LMNAME_RE.match(name) else False
@@ -208,39 +273,73 @@ def _parse_obs_cols_vals(obs, cols, value=None):
     return obs, cols, value
 
 
-def st_data(obs, cols):
-    """return numeric data in given observation numbers as a list of lists, 
-    one sub-list for each row; obs should be int or iterable of int;
-    cols should be a single str or int or iterable of str or int
+def st_data(obsnums, vars):
+    """Return numeric data in given observations and Stata variables.
+    
+    Parameters
+    ----------
+    obsnums : int or iterable of int
+    vars : int, str, or iterable of int or str
+        integers denote column numbers
+        strings should be Stata variable names or 
+          unambiguous abbreviations
+    
+    Returns
+    -------
+    List of lists of float or MissingValue,
+    one sub-list for each observation
     
     """
-    obs, cols, _ = _parse_obs_cols_vals(obs, cols)
+    obsnums, vars, _ = _parse_obs_cols_vals(obsnums, vars)
     
-    if not all(st_isnumvar(c) for c in cols):
+    if not all(st_isnumvar(v) for v in vars):
         raise TypeError("only numeric Stata variables allowed")
     
-    return [[_st_data(i,j) for j in cols] for i in obs]
+    return [[_st_data(i,j) for j in vars] for i in obsnums]
 
 
-def st_sdata(obs, cols):
-    """return string data in given observation numbers as a list of lists, 
-    one sub-list for each row; obs should be int or iterable of int;
-    cols should be a single str or int or iterable of str or int
+def st_sdata(obsnums, vars):
+    """Return string data in given observations and Stata variables.
+    
+    Parameters
+    ----------
+    obsnums : int or iterable of int
+    vars : int, str, or iterable of int or str
+        integers denote column numbers
+        strings should be Stata variable names or 
+          unambiguous abbreviations
+    
+    Returns
+    -------
+    List of lists, one sub-list for each observation
     
     """
-    obs, cols, _ = _parse_obs_cols_vals(obs, cols)
+    obsnums, vars, _ = _parse_obs_cols_vals(obsnums, vars)
     
-    if not all(st_isstrvar(c) for c in cols):
+    if not all(st_isstrvar(v) for v in vars):
         raise TypeError("only string Stata variables allowed")
     
-    return [[_st_sdata(i,j) for j in cols] for i in obs]
+    return [[_st_sdata(i,j) for j in vars] for i in obsnums]
 
 
 def st_store(obs, cols, vals):
-    """replace numeric data in given observation numbers and columns;
-    obs should be int or iterable of int;
-    cols should be a str or int, or iterable of str or int;
-    new values should be iterable of iterables, one sub-iterable per row
+    """Replace data in given observations and Stata numeric variables
+    
+    Parameters
+    ----------
+    obsnums : int or iterable of int
+    vars : int, str, or iterable of int or str
+        integers denote column numbers
+        strings should be Stata variable names or 
+          unambiguous abbreviations
+    values : iterable of iterables of numeric
+        one sub-iterable per row
+        dimensions should match implied dimensions 
+          of `obsnums` and `vars`
+        
+    Returns
+    -------
+    None
     
     """
     obs, cols, vals = _parse_obs_cols_vals(obs, cols, vals)
@@ -253,25 +352,69 @@ def st_store(obs, cols, vals):
             _st_store(obs_num, col_num, value)
 
 
-def st_sstore(obs, cols, vals):
-    """replace string data in given observation numbers and columns;
-    obs should be int or iterable of int;
-    cols should be a str or int, or iterable of str or int;
-    new values should be iterable of iterables, one sub-iterable per row
+def st_sstore(obsnums, vars, values):
+    """Replace data in given observations and Stata string variables
+    
+    Parameters
+    ----------
+    obsnums : int or iterable of int
+    vars : int, str, or iterable of int or str
+        integers denote column numbers
+        strings should be Stata variable names or 
+          unambiguous abbreviations
+    values : iterable of iterables of strings
+        one sub-iterable per row
+        dimensions should match implied dimensions 
+          of `obsnums` and `vars`
+        
+    Returns
+    -------
+    None
     
     """
-    obs, cols, vals = _parse_obs_cols_vals(obs, cols, vals)
+    obsnums, vars, values = _parse_obs_cols_vals(obsnums, vars, values)
 
-    if not all(st_isstrvar(c) for c in cols):
+    if not all(st_isstrvar(v) for v in vars):
         raise TypeError("only string Stata variables allowed")
     
-    for obs_num, value_row in zip(obs, vals):
-        for col_num, value in zip(cols, value_row):
-            _st_sstore(obs_num, col_num, value)
+    for obs, val_row in zip(obsnums, vals):
+        for col, val in zip(vars, val_row):
+            _st_sstore(obs, col, val)
 
         
-def st_view(rownums=None, colnums=None, selectvar=""):
-    """return a view onto current Stata data"""
+def st_view(rownums=None, varnums=None, selectvar=""):
+    """Return a view onto current Stata data
+    
+    Parameters
+    ----------
+    rownums : int, iterable of int, None, or MissingValue instance
+        optional
+        default value is None
+        if not specified, or is None or MissingValue instance,
+            a view on all observations will be returned
+    varnums : int, iterable of int, None, or MissingValue instance
+        optional
+        default value is None
+        if not specified, or is None or MissingValue instance,
+            a view on all Stata variables will be returned
+    selectvar : string, int, None, or MissingValue instance
+        optional
+        default value is the empty string
+        if not specified, or if the empty string, all rows in
+            `rownums` will be included
+        if specified as an integer or non-empty string, the
+            corresponding Stata variable must be numeric;
+            all rows in `rownums` will be included where the
+            Stata variable has non-zero values
+        if specified as None or a MissingValue instance, all
+            rows in `rownums` will be included where _none_ 
+            of the `varnums` variables have missing values
+    
+    Returns
+    -------
+    instance of StataView class    
+    
+    """
     nobs = st_nobs()
     nvar = st_nvar()
     
@@ -291,21 +434,21 @@ def st_view(rownums=None, colnums=None, selectvar=""):
     else:
         rownums = None
     
-    if not st_ismissing(colnums):
-        if isinstance(colnums, int):
-            colnums = (colnums,)
-        elif not isinstance(colnums, collections.Iterable):
-            raise TypeError("colnums should be int or iterable of int")
+    if not st_ismissing(varnums):
+        if isinstance(varnums, int):
+            varnums = (varnums,)
+        elif not isinstance(varnums, collections.Iterable):
+            raise TypeError("varnums should be int or iterable of int")
         else:
-            if not hasattr(colnums, "__len__"):
-                colnums = tuple(rownums)
-            if not all(isinstance(c, int) for c in colnums):
-                raise TypeError("colnums must be integers")
-            if not all(-nvar <= c < nvar for c in colnums):
-                raise IndexError("colnums out of range")
-            colnums = tuple(c if c >= 0 else nvar + c for c in colnums)
+            if not hasattr(varnums, "__len__"):
+                varnums = tuple(rownums)
+            if not all(isinstance(c, int) for c in varnums):
+                raise TypeError("varnums must be integers")
+            if not all(-nvar <= c < nvar for c in varnums):
+                raise IndexError("varnums out of range")
+            varnums = tuple(c if c >= 0 else nvar + c for c in varnums)
     else:
-        colnums = None
+        varnums = None
             
     if not selectvar == "":        
         if rownums is None:
@@ -313,7 +456,7 @@ def st_view(rownums=None, colnums=None, selectvar=""):
         
         if st_ismissing(selectvar):
             numeric = tuple(
-                c for c in (range(nvar) if colnums is None else colnums)
+                c for c in (range(nvar) if varnums is None else varnums)
                 if st_isnumvar(c)
             )
             rownums = tuple(
@@ -331,7 +474,7 @@ def st_view(rownums=None, colnums=None, selectvar=""):
                 r for r in rownums if _st_data(r, selectvar) != 0
             )
             
-    return StataView(rownums, colnums)
+    return StataView(rownums, varnums)
 
             
 class StataView():
@@ -429,41 +572,72 @@ class StataView():
                 "\n".join(" ".join(r for r in row) for row in rows))
         
     def to_list(self):
-        """return Stata data values as list of lists, 
-        one sub-list per observation
+        """Return Stata data values as list of lists
+                
+        Returns
+        -------
+        List of lists, one sub-list per observation
         
         """
         getters, colnums, rownums = self._getters, self._colnums, self._rownums
         return [[g(r, c) for g,c in zip(getters, colnums)] for r in rownums]
         
-    def get(self, row, col):
-        """get single value from view"""
+    def get(self, rownum, colnum):
+        """Get single data value from view
+        
+        Parameters
+        ----------
+        rownum : int
+            index of row _within view_, i.e., not Stata observation number
+        colnum : int
+            index of column _within view_, i.e., not Stata variable number
+            
+        Returns
+        -------
+        string, float, or MissingValue instance, depending
+        on data type of Stata variable
+        
+        """
         # use self._rownums[row] rather than row because self's rows
         # are not necessarily the same as Stata's observation numbers
-        return self._getters[col](self._rownums[row], self._colnums[col])
+        return self._getters[colnum](
+            self._rownums[rownum], self._colnums[colnum]
+        )
         
     def list(self):
-        """display values in current view object, 
-        like Stata's -list- command
+        """Display values in current view object
+        
+        Side effects
+        ------------
+        Displays data, much like Stata's `list` command
         
         """
         print(self.__str__())
         
-    def format(self, col, fmt):
-        """set the display format for given column in view"""
+    def format(self, colnum, fmt):
+        """Set the display format used by the `list` method
+        
+        Parameters
+        ----------
+        colnum : int
+            index of column _within view_, i.e., not Stata variable number
+        fmt : str
+            Stata display format        
+        
+        """
         if not isinstance(fmt, str):
             raise TypeError("fmt argument should be str")
             
-        if not isinstance(col, int):
-            raise TypeError('col argument should be int')
+        if not isinstance(colnum, int):
+            raise TypeError('colnum argument should be int')
         
         if not st_isfmt(fmt):
             raise ValueError(fmt + " is not a valid Stata format")
             
-        if st_isstrfmt(fmt) != st_isstrvar(self._colnums[col]):
+        if st_isstrfmt(fmt) != st_isstrvar(self._colnumnums[colnum]):
             raise ValueError("format does not match Stata variable type")
         
-        self._formats[col] = fmt
+        self._formats[colnum] = fmt
         
     @property
     def rows(self):
@@ -587,20 +761,47 @@ class StataView():
 
 
 def st_viewvars(view_obj):
-    """return column numbers from StataView object"""
+    """Return Stata variable indices from StataView object
+    
+    Parameters
+    ----------
+    view_obj : instance of StataView class
+    
+    Returns
+    -------
+    tuple of int
+    
+    """
     if not isinstance(view_obj, StataView):
         raise TypeError("argument should be a View")
     return view_obj._colnums
 
 
 def st_viewobs(view_obj):
-    """return row numbers from StataView object"""
+    """Return row numbers from StataView object
+    
+    Parameters
+    ----------
+    view_obj : instance of StataView class
+    
+    Returns
+    -------
+    tuple of int
+    
+    """
     if not isinstance(view_obj, StataView):
         raise TypeError("argument should be a View")
     return view_obj._rownums
 
 
 def st_mirror():
+    """Return a 'mirror' of the current Stata data set
+        
+    Returns
+    -------
+    instance of StataMirror class
+    
+    """
     return StataMirror()
 
     
@@ -688,14 +889,55 @@ class StataMirror(StataView):
             del self.__dict__[name]
 
     def index(self, varname):
+        """Returns index of Stata variable within data set
+        
+        Parameter
+        ---------
+        varname : str
+            Stata variable name or unambiguous abbreviation
+        
+        Returns
+        -------
+        int
+        
+        """
         return st_varindex(varname, True)
         
-    def get(self, row, col):
-        return _st_sdata(row, col) if st_isstrvar(col) else _st_data(row, col)
+    def get(self, rownum, colnum):
+        """Get single data value from view
+        
+        Parameters
+        ----------
+        rownum : int
+            Stata observation number
+        colnum : int
+            Stata variable index
+            
+        Returns
+        -------
+        string, float, or MissingValue instance, depending
+        on data type of Stata variable
+        
+        """
+        if st_isstrvar(colnum): 
+            return _st_sdata(rownum, colnum)
+        else:
+            return _st_data(rownum, colnum)
 
 
 def st_matrix(matname):
-    """return a view onto Stata matrix with name matname"""
+    """Return a view onto given Stata matrix
+    
+    Parameters
+    ----------
+    matname : str
+        name of Stata matrix
+        
+    Returns
+    -------
+    instance of StataMatrix class
+    
+    """
     if not isinstance(matname, str):
         raise TypeError("matrix name should be a string")
         
@@ -731,8 +973,12 @@ class StataMatrix():
         return (tuple(st_matrix_el(matname, r, c) for c in cols) for r in rows)
         
     def format(self, fmt):
-        """Change the display format of the matrix.
-        Argument -fmt- should be a valid Stata numerical format.
+        """Set the display format used by the `list` method
+        
+        Parameters
+        ----------
+        fmt : str
+            Stata numeric display format        
         
         """
         if not isinstance(fmt, str):
@@ -742,7 +988,13 @@ class StataMatrix():
         self._fmt = fmt
         
     def list(self, fmt=None):
-        """like Stata's -matrix list- command"""
+        """Display values in current view object
+        
+        Side effects
+        ------------
+        Displays data, much like Stata's `matrix list` command
+        
+        """
         if fmt is None:
             fmt = self._fmt
         elif not st_isnumfmt(fmt):
@@ -771,19 +1023,40 @@ class StataMatrix():
                            for c in colnums))
         
     def to_list(self):
-        """return matrix values in list of lists, 
+        """Return matrix values as list of lists
+                
+        Returns
+        -------
+        List of lists of float or MissingValue instances,
         one sub-list per row
         
         """
-        matname, colnums, rownums = self._matname, self._colnums, self._rownums
-        return [[st_matrix_el(matname, r, c) for c in colnums] for r in rownums]
+        matname, cols, rows = self._matname, self._colnums, self._rownums
+        return [[st_matrix_el(matname, r, c) for c in cols] for r in rows]
         
-    def get(self, row, col):
+    def get(self, rownum, colnum):
         """get single item from matrix"""
-        # use self._rownums[row] rather than row directly because 
+        """Get single value from matrix view
+        
+        Parameters
+        ----------
+        rownum : int
+            index of row _within view_, i.e., 
+                not necessarily row of Stata matrix
+        colnum : int
+            index of column _within view_, i.e., 
+                not necessarily column of Stata matrix
+                
+        Returns
+        -------
+        float or MissingValue instance
+        
+        """
+        # use self._rownums[rownum] rather than row directly because 
         # self's rows might not be the same as the Stata matrix's
-        return st_matrix_el(self._matname, 
-                            self._rownums[row], self._colnums[col])
+        return st_matrix_el(
+            self._matname, self._rownums[rownum], self._colnums[colnum]
+        )
         
     def __str__(self):
         """string representation of StataMatrix object"""
