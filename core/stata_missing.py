@@ -1,10 +1,24 @@
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 
 class MissingValue():
+    """A class to mimic some of the properties of Stata's missing values.
+    
+    The class is intended for mimicking only the 27 regular missing
+    values ., .a, .b, .c, etc.
+    
+    Users wanting MissingValue instances should access members of
+    MISSING_VALS rather than create new instances.
+    
+    """
     def __init__(self, index):
-        self.value = float.fromhex('0x1.0' + 
-                                   hex(index)[2:].zfill(2) + 'p+1023')
+        """Users wanting MissingValue instances should access members of
+        MISSING_VALS rather than create new instances.
+        
+        """
+        self.value = float.fromhex(
+            "".join(('0x1.0', hex(index)[2:].zfill(2), 'p+1023'))
+        )
         self.name = "." if index == 0 else "." + chr(index + 96)
         self.index = index
             
@@ -83,7 +97,7 @@ class MissingValue():
     def __rmul__(self, other):
         return MISSING
         
-    def __round__(self, nDigits=None):
+    def __round__(self, ndigits=None):
         return self
         
     def __rpow__(self, other):
@@ -110,9 +124,23 @@ MISSING = MISSING_VALS[0]
 
 
 def get_missing(value):
-    """get a MissingValue instance that corresponds to given float value
-    input: float
-    returns: MissingValue instance
+    """Get a MissingValue instance corresponding to a given float.
+    
+    The MissingValue instances returned by this function are analogues
+    of the 27 regular missing values in Stata: ., .a, .b, .c, etc.
+    If the given float is not the exact value associated with a Stata 
+    missing value, the returned instance might be surprising.
+    For interactive use, it may be easier to access members of
+    MISSING_VALS, which is a tuple of the 27 regular missing values.
+    
+    Parameters
+    ----------
+    value : float (or coercible to float)
+    
+    Returns
+    -------
+    MissingValue instance
+    
     """
     if value is None: return MISSING
     # apply float() partly to test that value is numeric, 
