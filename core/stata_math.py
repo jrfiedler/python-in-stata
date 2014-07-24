@@ -865,8 +865,10 @@ def _round(x, y):
     # >>> round(2.25, 2)
     # 2.2
     #
-    # However, imprecision effects also come into play. With banker's rounding,
-    # one might expect round(2.675, 2) to be 2.68, but 2.675 is stored as
+    # So, I've reimplemented the rounding most people expect.
+    #
+    # Either way, imprecision effects come into play. With either rounding,
+    # one would expect round(2.675, 2) to be 2.68, but 2.675 is stored as
     # something slightly smaller than 2.675, so it rounds down to 2.67.
     #
     # Stata has this latter issue as well, depending on use. If you use 
@@ -910,7 +912,7 @@ def _round(x, y):
         return x
     if _is_missing(x):
         return x if isinstance(x, MissingValue) else get_missing(x)
-    return round(x / y) * y
+    return math.floor(x / y + 0.5) * y
 
 def st_round(x, y=1):
     """Rounding function.

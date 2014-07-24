@@ -808,7 +808,15 @@ def st_mirror():
 class StataMirror(StataView):
     def __init__(self):
         pass
-        
+    
+    @property
+    def _nobs(self):
+        return st_nobs()
+    
+    @property
+    def _nvar(self):
+        return st_nvar()
+    
     @property
     def _rownums(self):
         return tuple(i for i in range(st_nobs()))
