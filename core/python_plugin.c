@@ -217,7 +217,7 @@ _st_data(PyObject *self, PyObject *args)
 	if (j < 0)
 		j = num_stata_vars + j ;
 
-	/* check to make sure variable is numerical */
+	/* check to make sure variable is numeric */
 	if (SF_isstr(j + 1)) {
 		PyErr_SetString(PyExc_TypeError, 
 			"Stata variable is string") ;
@@ -229,7 +229,7 @@ _st_data(PyObject *self, PyObject *args)
 	rc = SF_vdata(j + 1, i + 1, &z) ;
 	if (rc) {
 		PyErr_SetString(PyExc_Exception, 
-			"error in retrieving Stata numerical value") ;
+			"error in retrieving Stata numeric value") ;
 		return NULL ;
 	}
 
@@ -299,7 +299,7 @@ _st_store(PyObject *self, PyObject *args)
 	if (j < 0)
 		j = num_stata_vars + j ;
 
-	/* check to make sure variable is numerical */
+	/* check to make sure variable is numeric */
 	if (SF_isstr(j + 1)) {
 		PyErr_SetString(PyExc_TypeError, 
 			"Stata variable is string") ;
@@ -311,7 +311,7 @@ _st_store(PyObject *self, PyObject *args)
 	rc = SF_vstore(j + 1, i + 1, val) ; 
 	if (rc) {
 		PyErr_SetString(PyExc_Exception, 
-			"error in setting Stata numerical value") ;
+			"error in setting Stata numeric value") ;
 		return NULL ;
 	}
 	
@@ -922,7 +922,7 @@ st_varindex(PyObject *self, PyObject *args)
 	}
 	else {
 		PyErr_SetString(PyExc_TypeError, 
-			"st_numscalar() takes 1 argument for getting or 2 for setting") ;
+			"st_varindex() takes 1 or 2 arguments") ;
 		return NULL ;
 	}
 	
@@ -1032,7 +1032,7 @@ st_format(PyObject *self, PyObject *args)
 	
 	/* SF_safereforms changes the first and second arguments. 
 	Not a problem with changing the first, but for the second, 
-	the chenge causes a Python error when using a string 
+	the change causes a Python error when using a string 
 	constant in a loop. Python expects the old string to 
 	still be there and tries to reuse it. So instead, pass
 	a copy of z2 to SF_safereforms. */
@@ -1054,114 +1054,247 @@ st_format(PyObject *self, PyObject *args)
 }
 
 static PyMethodDef StataMethods[] = {
-	{"_st_display", _st_display, METH_VARARGS,
-	 "display in results window; smcl is interpreted\n"
-	 "input: single str\n"
-	 "returns: None"},
-	{"_st_error", _st_error, METH_VARARGS,
-	 "display error message in results window; smcl is interpreted\n"
-	 "input: single str\n"
-	 "returns: None"},
-	{"_st_data", _st_data, METH_VARARGS,
-	 "retrieve value in obs index i, var index j\n"
-	 "input: int i, int j\n"
-	 "returns: float"},
-	{"_st_store", _st_store, METH_VARARGS,
-	 "in obs index i, var index j, put float v\n"
-	 "input: int i, int j, and float (or int) v\n"
-	 "returns: None"},
-	{"_st_sdata", _st_sdata, METH_VARARGS,
-	 "retrieve value in obs index i, var index j\n"
-	 "input: int i, int j\n"
-	 "returns: str"},
-	{"_st_sstore", _st_sstore, METH_VARARGS,
-	 "in obs index i, var index j, put str s\n"
-	 "input: int i, int j, and str s\n"
-	 "returns None"},
-	{"st_nvar", st_nvar, METH_VARARGS,
-	 "get number of variables in the dataset loaded in Stata"},
-	{"st_nobs", st_nobs, METH_VARARGS,
-	 "get number of observations in the dataset loaded in Stata"},
-	{"st_ifobs", st_ifobs, METH_VARARGS,
-	 "determine whether 'if' condition is true in given observation\n"
-	 "if no 'if' condition specified, returns True for all observations\n"
-	 "input: int\n"
-	 "returns: boolean"},
-	{"st_in1", st_in1, METH_VARARGS,
-	 "get gebbing of 'in' range when plugin was called;\n"
-	 "if no 'in' range specified, returns zero"},
-	{"st_in2", st_in2, METH_VARARGS,
-	 "get end of 'in' range plus one when plugin was called;\n"
-	 "if no 'in' range specified, returns number of observations in dataset"},
-	{"st_matrix_el", st_matrix_el, METH_VARARGS,
-	 "with 3 arguments:\n"
-		"\tretrieve value in given matrix row and column\n"
-		"\tinput: str matrix name, int row, int column\n"
-		"\treturns: float\n"
-	 "with 4 arguments:\n"
-		"\tset value in given matrix row and column\n"
-		"\tinput: str matrix name, int row, int column, and numeric value\n"
-		"\treturns: None"},
 	{"st_cols", st_cols, METH_VARARGS,
-	 "get number of columns in given matrix\n"
-	 "input: str matrix name\n"
-	 "returns: int"},
-	{"st_rows", st_rows, METH_VARARGS,
-	 "get number of rows in given matrix\n"
-	 "input: str matrix name\n"
-	 "returns: int"},
-	{"st_local", st_local, METH_VARARGS,
-	 "with 1 argument:\n"
-		"\tretrieve str in given local\n"
-		"\tinput: str name\n"
-		"\treturns: str\n"
-	 "with 2 arguments:\n"
-		"\tset local to given value\n"
-		"\tinput: str name and str value\n"
-		"\treturns: None"},
+	 "Get number of columns in given matrix.\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "matname : str\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "int"},
+	{"_st_data", _st_data, METH_VARARGS,
+	 "Retrieve value in given observation and Stata numeric variable\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "obsnum : int\n"
+	 "varnum : int\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "float or MissingValue instance"},
+	{"_st_display", _st_display, METH_VARARGS,
+	 "Display text in results window.\n"
+	 "Any included smcl is interpreted.\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "text : str\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "None"},
+	{"_st_error", _st_error, METH_VARARGS,
+	 "Display text as error message in results window.\n"
+	 "Any included smcl is interpreted.\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "text : str\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "None"},
+	{"st_format", st_format, METH_VARARGS,
+	 "Return string representation of value, according to given fmt.\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "fmt : str\n"
+	 "value : int, float, MissingValue instance, or None\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "str"},
 	{"st_global", st_global, METH_VARARGS,
 	 "with 1 argument:\n"
-		"\tretrieve str in given global\n"
-		"\tinput: str name\n"
-		"\treturns: str\n"
+	 "    Retrieve contents of given global macro\n\n"
+	 "    Parameters\n"
+	 "    ----------\n"
+	 "    macroname : str\n\n"
+	 "    Returns\n"
+	 "    -------\n"
+	 "    str\n\n"
 	 "with 2 arguments:\n"
-		"\tset global to given value\n"
-		"\tinput: str name and str value\n"
-		"\treturns: None"},
+	 "    Set contents of given global macro\n\n"
+	 "    Parameters\n"
+	 "    ----------\n"
+	 "    macroname : str\n"
+	 "    value : str\n\n"
+	 "    Returns\n"
+	 "    -------\n"
+	 "    None"},
+	{"st_ifobs", st_ifobs, METH_VARARGS,
+	 "Query the `if` condition (specified when Python was\n"
+	 "invoked) for the given observation. If no `if`\n"
+	 "condition was specified, returns True for all \n"
+	 "observations.\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "obsnum : int\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "bool"},
+	{"st_in1", st_in1, METH_VARARGS,
+	 "Get the first index of the `in` range (specified when\n"
+	 "Python was invoked). If no `in` range was specified,\n"
+	 "returns zero.\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "int"},
+	{"st_in2", st_in2, METH_VARARGS,
+	 "Get the second index of the `in` range (specified when\n"
+	 "Python was invoked), plus one. If no `in` range was\n"
+	 "specified, returns largest observation index plus one.\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "int"},
+	{"st_ismissing", st_ismissing, METH_VARARGS,
+	 "Determine if the given value is considered a missing value.\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "value : any Python object\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "bool"},
+	{"st_isnumvar", st_isnumvar, METH_VARARGS,
+	 "Determine if Stata variable is numeric.\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "var : int or str\n"
+	 "    integers denote column numbers\n"
+     "    strings should be Stata variable names or\n"
+     "      unambiguous abbreviations\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "boolean"},
+	{"st_isstrvar", st_isstrvar, METH_VARARGS,
+	 "Determine if Stata variable is string.\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "var : int or str\n"
+	 "    integers denote column numbers\n"
+     "    strings should be Stata variable names or\n"
+     "      unambiguous abbreviations\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "boolean"},
+	{"st_local", st_local, METH_VARARGS,
+	 "with 1 argument:\n"
+	 "    Retrieve contents of given local macro\n\n"
+	 "    Parameters\n"
+	 "    ----------\n"
+	 "    macroname : str\n\n"
+	 "    Returns\n"
+	 "    -------\n"
+	 "    str\n\n"
+	 "with 2 arguments:\n"
+	 "    Set contents of given local macro\n\n"
+	 "    Parameters\n"
+	 "    ----------\n"
+	 "    macroname : str\n"
+	 "    value : str\n\n"
+	 "    Returns\n"
+	 "    -------\n"
+	 "    None"},
+	{"st_matrix_el", st_matrix_el, METH_VARARGS,
+	 "with 3 arguments:\n"
+	 "    Retrieve value in given matrix row and column\n\n"
+	 "    Parameters\n"
+	 "    ----------\n"
+	 "    matname : str\n"
+	 "    row : int\n"
+	 "    col : int\n\n"
+	 "    Returns\n"
+	 "    -------\n"
+	 "    float or MissingValue instance\n\n"
+	 "with 4 arguments:\n"
+	 "    Set value in given matrix row and column\n\n"
+	 "    Parameters\n"
+	 "    ----------\n"
+	 "    matname : str\n"
+	 "    row : int\n"
+	 "    col : int\n"
+	 "    value : int, float, MissingValue instance, or None\n\n"
+	 "    Returns\n"
+	 "    -------\n"
+	 "    None"},
+	{"st_nobs", st_nobs, METH_VARARGS,
+	 "Get the number of observations in the current Stata data set\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "int"},
 	{"st_numscalar", st_numscalar, METH_VARARGS,
 	 "with 1 argument:\n"
-		"\tretrieve float in given scalar\n"
-		"\tinput: str name\n"
-		"\treturns: float\n"
+	 "    Retrieve contents of given numeric scalar\n\n"
+	 "    Parameters\n"
+	 "    ----------\n"
+	 "    scalarname : str\n\n"
+	 "    Returns\n"
+	 "    -------\n"
+	 "    float or MissingValue instance\n\n"
 	 "with 2 arguments:\n"
-		"\tset scalar to given value\n"
-		"\tinput: str name and float value\n"
-		"\treturns: None"},
-	{"st_isnumvar", st_isnumvar, METH_VARARGS,
-	 "check if variable is numerical\n"
-	 "input: int index -or- str name/abbrev\n"
-	 "returns: boolean"},
-	{"st_isstrvar", st_isstrvar, METH_VARARGS,
-	 "check if variable is string\n"
-	 "input: int index -or- str name/abbrev\n"
-	 "returns: boolean"},
+	 "    Set contents of given numeric scalar\n\n"
+	 "    Parameters\n"
+	 "    ----------\n"
+	 "    scalarname : str\n"
+	 "    value : int, float, MissingValue instance, or None\n\n"
+	 "    Returns\n"
+	 "    -------\n"
+	 "    None"},
+	{"st_nvar", st_nvar, METH_VARARGS,
+	 "Get the number of Stata variables in the current data set\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "int"},
+	{"st_rows", st_rows, METH_VARARGS,
+	 "Get the number of rows in the given matrix\n"
+	 "Parameters\n"
+	 "matname : str\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "int (zero if given matrix is not found)"},
+	{"_st_sdata", _st_sdata, METH_VARARGS,
+	 "Retrieve value in given Stata string variable and observation\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "obsnum : int\n"
+	 "varnum : int\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "str"},
+	{"_st_sstore", _st_sstore, METH_VARARGS,
+	 "Set value in given Stata string variable and observation\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "obsnum : int\n"
+	 "varnum : int\n"
+	 "value : str\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "None"},
+	{"_st_store", _st_store, METH_VARARGS,
+	 "Set value in given Stata numeric variable and observation\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "obsnum : int\n"
+	 "varnum : int\n"
+	 "value : int, float, MissingValue instance, or None\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "None"},
 	{"st_varindex", st_varindex, METH_VARARGS,
-	 "find index of variable with given name or abbreviation\n"
-	 "input: str name/abbrev\n"
-	 "returns: int (>= 0)\n"
-	 "raises: ValueError if abbreviation is invalid or ambiguous"},
+	 "Find the index of the given Stata variable\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "varname : str\n"
+	 "abbr_ok : bool or coercible to bool\n"
+	 "    optional\n"
+	 "    default value is False\n"
+	 "    determines whether `varname` must be full name\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "int"},
 	{"st_varname", st_varname, METH_VARARGS,
-	 "find name of variable at given index\n"
-	 "input: int index (zero-based)\n"
-	 "returns: str name"},
-	{"st_ismissing", st_ismissing, METH_VARARGS,
-	 "determine if Stata considers value missing\n"
-	 "input: any Python object\n"
-	 "returns: boolean"},
-	{"st_format", st_format, METH_VARARGS,
-	 "use given fmt, return string representation of value\n"
-	 "input: str fmt and float (or int) value\n"
-	 "returns: str"},
+	 "Return the name of the Stata variable at the given index\n\n"
+	 "Parameters\n"
+	 "----------\n"
+	 "varnum : int\n\n"
+	 "Returns\n"
+	 "-------\n"
+	 "str"},
 	{NULL, NULL, 0, NULL} /* Sentinel */
 } ;
 
@@ -1199,11 +1332,13 @@ run_file(char *filename)
 	PyObject *obj ;
 
 	if (!file_exists(filename)) {
-		SF_error("file not found\n\n") ;
+		SF_error("file \"") ;
+		SF_error(filename) ;
+		SF_error("\" not found\n\n") ;
 		return 601 ;
 	}
 	
-	/* workaround found in comment at stackoverflow.com/3654652 */
+	/* workaround found in comment at stackoverflow.com/questions/3654652 */
 	obj = Py_BuildValue("s", filename) ;
 	fp = _Py_fopen(obj, "r+") ;
 	if (fp != NULL) {
@@ -1211,7 +1346,9 @@ run_file(char *filename)
 	}
 	else {
 		PyErr_Clear() ;
-		SF_error("file could not be opened\n\n") ;
+		SF_error("file \"") ;
+		SF_error(filename) ;
+		SF_error("\" could not be opened\n\n") ;
 		return 603 ;
 	}
 	
@@ -1219,7 +1356,7 @@ run_file(char *filename)
 }
 
 static void 
-run_interactive(int already_init)
+run_interactive(void)
 {
 	PyObject *main_module, *main_dict ;
 	PyObject *pyrun ;
@@ -1233,6 +1370,7 @@ run_interactive(int already_init)
 	main_module = PyImport_AddModule("__main__") ;
 	main_dict = PyModule_GetDict(main_module) ;
 	
+	SF_display("{cmd}>>>") ;
 	rc = SF_input(input, 999) ;
 	while (strcmp(input, "exit()") != 0) {
 		if (strcmp(input, "") != 0) {
@@ -1250,7 +1388,8 @@ run_interactive(int already_init)
 			/* extra blank line before next input */
 			SF_display("\n") ; 
 		}
-		rc = SF_input(input, 1000) ;
+		SF_display("{cmd}>>>") ;
+		rc = SF_input(input, 999) ;
 	}
 	SF_display("{txt}{hline}\n") ;
 }
@@ -1297,7 +1436,7 @@ static void
 setup_varnames(void)
 {
 	int rc, i, j ;
-	char lname[17], varnamei[33], nvar[6], num[65], *end = NULL ;
+	char lname[17], varnamei[33], nvar[6], varnum[6], *end = NULL ;
 	/* nvar[6] covers max no. of Stata vars, 32767 */
 	
 	/* this block sets num_stata_vars */
@@ -1316,11 +1455,10 @@ setup_varnames(void)
 
 	varnames_trie = trie_initialize(NULL) ;
 	for (i = 0; i < num_stata_vars; i++) {
-		sprintf(num, "%d", i) ; /* safe because nvar limited to 6 chars */
-		strcat(lname, num) ;
-		for (j = 0; j < 6 && (lname[11+j] = num[j]) != '\0'; j++)
+		sprintf(varnum, "%d", i) ;
+		for (j = 0; j < 6 && (lname[11+j] = varnum[j]) != '\0'; j++)
 			;
-		rc = SF_macro_use(lname, varnamei, 33) ;
+		rc = SF_macro_use(lname, varnamei, 32) ;
 		if (rc) {
 			varnames[i][0] = '\0' ;
 			continue ;
@@ -1354,7 +1492,7 @@ stata_call(int argc, char *argv[])
 		rc = run_file(argv[0]) ;
 	}
 	else {
-		run_interactive(already_init) ;
+		run_interactive() ;
 	}
 
 	/* free memory in varnames_trie, since memory 

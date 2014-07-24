@@ -7,8 +7,14 @@ program approx, rclass
 
 	if (`nterms' < 3) local nterms 3
 	if ("`center'" == "") local center 0
+	
+	mata: st_local("filepath", findfile("approx.py"))
+	if (`"`filepath'"' == `""') {
+		noi di as error "cannot find Python file approx.py"
+		exit 601
+	}
 
-	plugin call python_plugin , approx.py
+	plugin call python_plugin , `"`filepath'"'
 	if ("`importerror'" != "") {
 		noi di as error _n "module Sympy must be installed"
 		exit
@@ -31,7 +37,7 @@ program approx, rclass
 	}
 
 	twoway `graphstr' function y = `f', `range' lcolor(black) lwidth(medthick) ///
-		   legend(order(`legendstr')) title("Taylor approxmations to `f'") `options'
+		   legend(order(`legendstr')) title("Taylor approximations to `f'") `options'
 		   
 	return clear
 	forv i=`nterms'(-1)1 {

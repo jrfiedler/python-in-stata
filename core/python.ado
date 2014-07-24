@@ -1,17 +1,33 @@
-*! version 0.1.0
+*! version 0.2.0
 * Use Python within Stata, either interactively or by executing a file. 
 
 program define python
 	version 12.1
 	
 	syntax [varlist(default=none)] [if] [in] [, File(string) ///
-												Args(string asis) ]
-
-	// For the plugin, if file is empty set file local to empty quotes.
+	                                            Args(string asis) ///
+	                                            LOCals(string asis) ///
+	                                            * ]
+	
+	// For the plugin, if file is empty set filepath local to empty quotes.
 	// This is mostly to satisfy constraints in an older version of this
 	// program, but is retained in case future changes require it.
-	if ("`file'" == "") {
-		local file = `""""'
+	if ("`file'" != "") {
+		mata: st_local("filepath", findfile("`file'"))
+		if ("`filepath'" == "") {
+			noi di as error `"file "`file'" not found"'
+			exit 601
+		}
+	}
+	
+	// parse passed locals, if any
+	if (`"`locals'"' != `""') {
+		tokenize `locals'
+		local nlocals = 0
+		while (`"``=`nlocals' + 1''"' != `""') {
+			local ``=`nlocals' + 1'' = `"``=`nlocals' + 2''"'
+			local nlocals = `nlocals' + 2
+		}
 	}
 
 	// Set locals for variables in program varlist.
@@ -49,9 +65,10 @@ program define python
 
 	// If "`file'"" != "", plugin will (try to) run file.
 	// Otherwise, plugin will start interactive interpreter.
-	plugin call python_plugin `var_abbr' `if' `in', `file'
+	plugin call python_plugin `var_abbr' `if' `in', `"`filepath'"'
 
 end
 
 
 program python_plugin, plugin
+
