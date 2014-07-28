@@ -937,10 +937,13 @@ def st_round(x, y=1):
     
     Notes
     -----
-    Python 3 uses "banker's rounding": When equidistant between two rounded
-    values, Python 3 rounds to the even digit. For example, round(3.5) and
-    round(4.5) are both 4. Keep in mind that floating point imprecision of
-    inputs may affect the output.
+    Though Python 3 uses "banker's rounding" or "round half to even",
+    this function uses "round half up". For example, with Python 3's
+    `round` function, `round(3.5)` and `round(4.5)` are both 4, but
+    `st_round(3.5)` is 4 and `st_round(4.5)` is 5.
+    
+    Keep in mind that floating point imprecision of inputs may affect
+    the output.
     
     """
     if isinstance(x, StataVarVals):
